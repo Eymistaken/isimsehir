@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>İsim Şehir Oyunu (Mobil)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link id="main-font-link" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --font-family: 'Nunito', sans-serif;
+            --bg-color: #111827; /* gray-900 */
+            --bg-image: none;
+            --fg-color: #1f2937; /* gray-800 */
+            --text-color: #e5e7eb; /* gray-200 */
+            --accent-color: #f59e0b; /* amber-500 */
+            --secondary-accent-color: #38bdf8; /* lightBlue-400 */
+            --success-color: #10b981; /* emerald-500 */
+            --danger-color: #ef4444; /* red-500 */
+            --nav-bg-color: rgba(17, 24, 39, 0.8); /* gray-900/80 */
+            --timer-blur-amount: 0px;
+            --timer-bg-color: var(--fg-color);
+        }
+        /* Dokunma vurgusunu kaldırma */
+        * { -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            background-image: var(--bg-image);
+            color: var(--text-color);
+            overflow: hidden; /* Sayfanın kaymasını engelle */
+            transition: background-color 0.1s;
+        }
+        body.timer-flash {
+            background-color: var(--danger-color) !important;
+        }
+        .view {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            padding-bottom: 8rem; 
+        }
+        #game-view, #rounds-view, #manage-view {
+            padding-bottom: 12rem;
+        }
+        .view.hidden {
+            opacity: 0;
+            transform: scale(0.98);
+            pointer-events: none;
+            position: absolute;
+        }
+        #wheel {
+            transition: transform 4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .letter {
+            position: absolute;
+            width: 100%; height: 100%;
+            display: flex; align-items: flex-start; justify-content: center;
+            font-size: 1.25rem; font-weight: 900; color: #1a202c;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+        }
+        .modal-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal-overlay.hidden {
+            opacity: 0; pointer-events: none;
+        }
+        .modal-content {
+            animation: modal-pop 0.3s ease-out;
+        }
+        @keyframes modal-pop {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+        }
+        .accordion-content.open {
+            max-height: 800px;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .accordion-toggle .arrow {
+            transition: transform 0.3s;
+        }
+        .accordion-toggle.open .arrow {
+            transform: rotate(180deg);
+        }
+        .bottom-nav-btn.active {
+            color: var(--accent-color);
+        }
+        .alphabet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+            gap: 0.5rem;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--accent-color); border-radius: 20px; }
+
+        /* Pop-up Zamanlayıcı Stilleri */
+        .popup-timer-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+            cursor: grab;
+        }
+        .popup-timer-container.dragging {
+            cursor: grabbing;
+            touch-action: none; /* HATA DÜZELTME: Sürüklerken sayfa yenilemeyi engelle */
+        }
+        .popup-timer-collapsed {
+            width: 60px;
+            height: 60px;
+            background-color: var(--timer-bg-color);
+            backdrop-filter: blur(var(--timer-blur-amount));
+            border: 2px solid var(--accent-color);
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.2s ease-out;
+            pointer-events: none; /* Sürükleme için ana containera devret */
+        }
+        .popup-timer-expanded {
+            position: absolute;
+            width: 280px;
+            background-color: var(--timer-bg-color);
+            backdrop-filter: blur(var(--timer-blur-amount));
+            border-radius: 1rem;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.4);
+            overflow: hidden;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            transform: scale(0);
+            opacity: 0;
+            cursor: default;
+        }
+        .popup-timer-container.open .popup-timer-expanded {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .timer-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 99;
+        }
+        .timer-view {
+            padding: 1rem;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 28px;
+            background-color: #4b5563;
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .toggle-switch.active {
+            background-color: var(--success-color);
+        }
+        .toggle-switch-handle {
+            width: 22px;
+            height: 22px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.2s;
+        }
+        .toggle-switch.active .toggle-switch-handle {
+            transform: translateX(22px);
+        }
+        .themed-panel {
+            background-color: var(--fg-color);
+        }
+        .hold-to-finish-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .hold-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0;
+            background-color: rgba(255,255,255,0.2);
+            transition: width 0.1s linear;
+        }
+        .word-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .score-input:disabled {
+            filter: blur(3px);
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col">
+
+    <main class="flex-grow overflow-hidden relative w-full h-full">
+        <div id="start-view" class="view hidden w-full h-full flex flex-col items-center justify-center p-4">
+            <div id="wheel-arrow" class="w-12 h-12 absolute z-10" style="color: var(--accent-color); top: calc(50% - 7rem);">
+                <svg class="w-full h-full drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"></path></svg>
+            </div>
+            <div id="wheel" class="relative w-80 h-80 rounded-full bg-gradient-to-br from-slate-300 to-slate-500 border-8 border-slate-600 shadow-2xl flex items-center justify-center">
+                </div>
+            <button id="spin-button" class="mt-8 px-10 py-4 text-slate-900 font-bold text-2xl rounded-lg shadow-lg transition-transform transform hover:scale-105" style="background-color: var(--accent-color)">
+                ÇEVİR
+            </button>
+        </div>
+
+        <div id="game-view" class="view w-full h-full flex flex-col p-4 custom-scrollbar overflow-y-auto">
+            <div id="game-view-content" class="w-full flex-grow">
+                </div>
+            <div id="game-placeholder" class="hidden w-full h-full flex flex-col items-center justify-center text-center">
+                <h2 class="text-2xl font-bold text-gray-400">Oyun Alanı</h2>
+                <p class="text-gray-500 mt-2">Yeni bir tura başlamak için aşağıdaki butonu kullanın.</p>
+                <button id="new-round-placeholder-btn" class="mt-8 px-8 py-3 text-white font-bold rounded-lg shadow-md transition-colors" style="background-color: var(--success-color)">
+                    Yeni Tur Başlat
+                </button>
+            </div>
+        </div>
+
+        <div id="rounds-view" class="view hidden w-full h-full flex flex-col p-4 custom-scrollbar overflow-y-auto">
+            <h1 class="text-3xl font-black mb-4 flex-shrink-0">Geçmiş Turlar</h1>
+            <div id="rounds-view-content" class="w-full flex-grow space-y-4">
+                <div id="rounds-placeholder" class="w-full h-full flex flex-col items-center justify-center text-center text-gray-500">
+                    <p class="text-lg">Henüz tamamlanmış bir tur yok.</p>
+                </div>
+            </div>
+        </div>
+        <div id="grand-total-panel" class="hidden w-full fixed left-0 p-4 backdrop-blur-sm bg-gray-900/80 border-t border-gray-700 bottom-28">
+            <div class="flex justify-between items-center w-full max-w-screen-sm mx-auto px-4">
+                <span class="text-xl font-bold">Genel Toplam:</span>
+                <span id="grand-total-score" class="text-3xl font-black" style="color: var(--success-color);">0</span>
+            </div>
+        </div>
+
+
+        <div id="manage-view" class="view hidden w-full h-full flex flex-col p-4 custom-scrollbar overflow-y-auto">
+            <h1 class="text-3xl font-black mb-4 flex-shrink-0">Yönetim & Ayarlar</h1>
+            <div class="space-y-4">
+                <div class="themed-panel rounded-lg">
+                    <button class="accordion-toggle w-full flex justify-between items-center p-4 font-bold text-lg">
+                        <span>Kategoriler</span><span class="arrow">▼</span>
+                    </button>
+                    <div class="accordion-content px-4">
+                        <div id="category-list" class="flex flex-wrap gap-2 mb-4"></div>
+                        <div class="flex gap-2">
+                            <input type="text" id="new-category-input" placeholder="Yeni kategori..." class="flex-grow bg-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2" style="--tw-ring-color: var(--accent-color)">
+                            <button id="add-category-button" class="px-4 py-2 text-white font-bold rounded-lg" style="background-color: var(--accent-color)">Ekle</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="themed-panel rounded-lg">
+                     <button class="accordion-toggle w-full flex justify-between items-center p-4 font-bold text-lg">
+                        <span>Zamanlayıcı</span><span class="arrow">▼</span>
+                    </button>
+                    <div class="accordion-content px-4 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium">Pop-up Zamanlayıcı</span>
+                            <div id="popup-timer-toggle" class="toggle-switch">
+                                <div class="toggle-switch-handle"></div>
+                            </div>
+                        </div>
+                        <div id="fallback-timer-container" class="hidden">
+                            <div class="flex items-center justify-center gap-4">
+                                <div class="text-5xl font-black timer-display" style="color: var(--secondary-accent-color)">
+                                    <span id="timer-minutes">01</span>:<span id="timer-seconds">00</span>
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <button id="timer-start-stop" class="px-4 py-1 text-white font-bold rounded-md" style="background-color: var(--success-color)">Başlat</button>
+                                    <button id="timer-reset" class="px-4 py-1 bg-gray-600 text-white font-bold rounded-md">Sıfırla</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 mt-4">
+                                <label for="timer-duration-input" class="font-medium text-sm">Süre (sn):</label>
+                                <input type="number" id="timer-duration-input" value="60" min="1" class="w-full bg-gray-700 rounded-md px-3 py-1 text-center focus:outline-none focus:ring-2" style="--tw-ring-color: var(--secondary-accent-color)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="themed-panel rounded-lg">
+                     <button class="accordion-toggle w-full flex justify-between items-center p-4 font-bold text-lg">
+                        <span>Tema Ayarları</span><span class="arrow">▼</span>
+                    </button>
+                    <div id="theme-settings" class="accordion-content px-4 grid grid-cols-1 gap-y-4">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <nav id="bottom-nav" class="fixed bottom-6 left-4 right-4 flex-shrink-0 grid grid-cols-3 gap-4 p-2 backdrop-blur-sm border border-gray-700 rounded-2xl" style="background-color: var(--nav-bg-color)">
+        <button data-view="game-view" class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="text-xs font-medium mt-1">Oyun</span>
+        </button>
+        <button data-view="rounds-view" class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            <span class="text-xs font-medium mt-1">Turlar</span>
+        </button>
+        <button data-view="manage-view" class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span class="text-xs font-medium mt-1">Ayarlar</span>
+        </button>
+    </nav>
+    
+    <div id="timer-overlay" class="timer-overlay hidden"></div>
+    <div id="popup-timer" class="popup-timer-container">
+        <div id="popup-timer-collapsed" class="popup-timer-collapsed">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div id="popup-timer-expanded" class="popup-timer-expanded">
+            </div>
+    </div>
+
+    <div id="start-choice-modal" class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div class="modal-content bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h3 class="text-xl font-bold mb-4">Yeni Tura Nasıl Başlayalım?</h3>
+            <p class="mb-6 text-gray-400">Harfi rastgele seçmek için çarkı çevirin veya listeden kendiniz seçin.</p>
+            <div class="flex flex-col gap-3">
+                <button id="spin-wheel-choice-btn" class="w-full px-6 py-3 text-white font-bold rounded-lg" style="background-color: var(--success-color);">Çarkı Çevir</button>
+                <button id="choose-letter-btn" class="w-full px-6 py-3 bg-gray-600 text-white font-bold rounded-lg">Harf Seç</button>
+                <button id="start-choice-cancel-btn" class="w-full mt-2 py-2 text-gray-400 font-bold rounded-lg">İptal</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="letter-selection-modal" class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div class="modal-content bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-center">
+            <h3 class="text-xl font-bold mb-4">Bir Harf Seçin</h3>
+            <div id="alphabet-grid" class="alphabet-grid"></div>
+            <button id="letter-modal-cancel-btn" class="mt-6 w-full px-6 py-3 bg-gray-600 text-white font-bold rounded-lg">Geri</button>
+        </div>
+    </div>
+
+    <div id="confirmation-modal" class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+        <div class="modal-content bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h3 id="modal-title" class="text-xl font-bold mb-4">Emin misiniz?</h3>
+            <p id="modal-message" class="mb-6 text-gray-400"></p>
+            <div class="flex gap-4">
+                <button id="modal-cancel-btn" class="flex-1 px-6 py-2 bg-gray-600 text-white font-bold rounded-lg">İptal</button>
+                <button id="modal-confirm-btn" class="flex-1 px-6 py-2 text-white font-bold rounded-lg" style="background-color: var(--danger-color);">Onayla</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elementleri ---
+            const root = document.documentElement;
+            const body = document.body;
+            const views = document.querySelectorAll('.view');
+            const bottomNavButtons = document.querySelectorAll('.bottom-nav-btn');
+            const startView = document.getElementById('start-view');
+            const gameView = document.getElementById('game-view');
+            const gameViewContent = document.getElementById('game-view-content');
+            const gamePlaceholder = document.getElementById('game-placeholder');
+            const newRoundPlaceholderBtn = document.getElementById('new-round-placeholder-btn');
+            const roundsView = document.getElementById('rounds-view');
+            const roundsViewContent = document.getElementById('rounds-view-content');
+            const roundsPlaceholder = document.getElementById('rounds-placeholder');
+            const manageView = document.getElementById('manage-view');
+            const wheel = document.getElementById('wheel');
+            const spinButton = document.getElementById('spin-button');
+            const categoryList = document.getElementById('category-list');
+            const newCategoryInput = document.getElementById('new-category-input');
+            const addCategoryButton = document.getElementById('add-category-button');
+            const themeSettingsContainer = document.getElementById('theme-settings');
+            const accordionToggles = document.querySelectorAll('.accordion-toggle');
+            const grandTotalPanel = document.getElementById('grand-total-panel');
+            const grandTotalScoreEl = document.getElementById('grand-total-score');
+
+            // Fallback Timer
+            const fallbackTimerContainer = document.getElementById('fallback-timer-container');
+            const timerDurationInput = document.getElementById('timer-duration-input');
+            const timerStartStopButton = document.getElementById('timer-start-stop');
+            const timerResetButton = document.getElementById('timer-reset');
+            const timerMinutesEl = document.getElementById('timer-minutes');
+            const timerSecondsEl = document.getElementById('timer-seconds');
+            
+            // Popup Timer
+            const popupTimer = document.getElementById('popup-timer');
+            const popupTimerToggle = document.getElementById('popup-timer-toggle');
+            const timerOverlay = document.getElementById('timer-overlay');
+            const popupTimerCollapsed = document.getElementById('popup-timer-collapsed');
+            const popupTimerExpanded = document.getElementById('popup-timer-expanded');
+
+            // Modal elementleri
+            const startChoiceModal = document.getElementById('start-choice-modal');
+            const spinWheelChoiceBtn = document.getElementById('spin-wheel-choice-btn');
+            const chooseLetterBtn = document.getElementById('choose-letter-btn');
+            const startChoiceCancelBtn = document.getElementById('start-choice-cancel-btn');
+            const letterSelectionModal = document.getElementById('letter-selection-modal');
+            const alphabetGrid = document.getElementById('alphabet-grid');
+            const letterModalCancelBtn = document.getElementById('letter-modal-cancel-btn');
+            const confirmationModal = document.getElementById('confirmation-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMessage = document.getElementById('modal-message');
+            const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+            const modalCancelBtn = document.getElementById('modal-cancel-btn');
+            
+            // --- Değişkenler ---
+            const TURKISH_ALPHABET = 'ABCÇDEFGHIİJKLMNOÖPRSŞTUVYZ'.split('');
+            let categories = ['İsim', 'Şehir', 'Hayvan', 'Bitki', 'Eşya'];
+            let usedLetters = [];
+            let isSpinning = false;
+            let roundCounter = 0;
+            let activeRound = null;
+            let confirmCallback = null;
+            let audioCtx;
+            
+            // Zamanlayıcı Değişkenleri
+            let isPopupTimerEnabled = true;
+            let isTimerBlurEnabled = false;
+            let timerBlurAmount = 10;
+            let mainTimerInterval = null;
+            let mainTimeLeft = 0;
+            let isMainTimerRunning = false;
+            
+            const defaultTheme = {
+                '--bg-color': '#111827',
+                '--fg-color': '#1f2937',
+                '--text-color': '#e5e7eb',
+                '--accent-color': '#f59e0b',
+            };
+            const defaultFont = 'Nunito';
+
+            // --- Temel Fonksiyonlar ---
+            function initAudio() {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            document.body.addEventListener('click', initAudio, { once: true });
+
+            function playSound(type) {
+                if (!audioCtx) return;
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                if (type === 'click') {
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(100, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
+                } else if (type === 'timerEnd') {
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+                }
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.5);
+            }
+
+            // --- Navigasyon ---
+            function switchView(viewId) {
+                views.forEach(v => v.classList.add('hidden'));
+                document.getElementById(viewId)?.classList.remove('hidden');
+
+                bottomNavButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.view === viewId);
+                });
+                const completedRounds = roundsViewContent.querySelectorAll('.completed-round-card').length > 0;
+                grandTotalPanel.classList.toggle('hidden', viewId !== 'rounds-view' || !completedRounds);
+            }
+
+            // --- Ayarları Kaydetme/Yükleme ---
+            const SETTINGS_KEY = 'isimSehirGameSettingsMobile';
+            function saveSettings() {
+                const settings = {
+                    categories: categories,
+                    timerDuration: timerDurationInput.value,
+                    isPopupTimerEnabled: isPopupTimerEnabled,
+                    isTimerBlurEnabled: isTimerBlurEnabled,
+                    timerBlurAmount: timerBlurAmount,
+                    theme: {
+                        '--bg-color': getComputedStyle(root).getPropertyValue('--bg-color').trim(),
+                        '--fg-color': getComputedStyle(root).getPropertyValue('--fg-color').trim(),
+                        '--text-color': getComputedStyle(root).getPropertyValue('--text-color').trim(),
+                        '--accent-color': getComputedStyle(root).getPropertyValue('--accent-color').trim(),
+                    },
+                    font: document.getElementById('font-selector')?.value || defaultFont
+                };
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            }
+
+            function loadSettings() {
+                const savedSettings = localStorage.getItem(SETTINGS_KEY);
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.categories) categories = settings.categories;
+                    if (settings.timerDuration) {
+                        timerDurationInput.value = settings.timerDuration;
+                        resetFallbackTimer(false);
+                    }
+                    if (settings.theme) {
+                        Object.keys(settings.theme).forEach(prop => {
+                            root.style.setProperty(prop, settings.theme[prop])
+                            const picker = document.getElementById(`${prop.replace('--', '')}-picker`);
+                            if(picker) picker.value = settings.theme[prop];
+                        });
+                    }
+                    if (settings.font) applyFont(settings.font, false);
+                    
+                    isPopupTimerEnabled = settings.isPopupTimerEnabled !== false;
+                    isTimerBlurEnabled = settings.isTimerBlurEnabled === true;
+                    timerBlurAmount = settings.timerBlurAmount || 10;
+                    
+                    updateTimerSystem();
+                    applyTimerBlur();
+                }
+            }
+            
+            // --- Çark ve Harf İşlemleri ---
+            function createWheel() {
+                wheel.innerHTML = '<div class="w-12 h-12 bg-slate-700 rounded-full border-4 border-slate-800"></div>';
+                const radius = wheel.offsetWidth / 2 - 15;
+                const alphabetForWheel = TURKISH_ALPHABET.filter(h => h !== 'Ğ');
+                const angleStep = 360 / alphabetForWheel.length;
+                alphabetForWheel.forEach((letter, index) => {
+                    const angle = angleStep * index;
+                    const x = radius * Math.cos((angle - 90) * (Math.PI / 180));
+                    const y = radius * Math.sin((angle - 90) * (Math.PI / 180));
+                    const letterDiv = document.createElement('div');
+                    letterDiv.className = 'letter';
+                    letterDiv.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
+                    letterDiv.textContent = letter;
+                    wheel.appendChild(letterDiv);
+                });
+            }
+
+            function spinWheel() {
+                playSound('click');
+                if (isSpinning) return;
+                const availableLetters = TURKISH_ALPHABET.filter(l => !usedLetters.includes(l) && l !== 'Ğ');
+                if (availableLetters.length === 0) {
+                    showConfirmationModal("Tüm Harfler Kullanıldı!", "Yeni tur için harf kalmadı.", () => {}, true);
+                    return;
+                }
+                isSpinning = true;
+                spinButton.disabled = true;
+                const targetLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
+                const alphabetForWheel = TURKISH_ALPHABET.filter(h => h !== 'Ğ');
+                const targetIndex = alphabetForWheel.indexOf(targetLetter);
+                const segmentAngle = 360 / alphabetForWheel.length;
+                const spinCount = 5 * 360;
+                const targetRotation = 360 - (targetIndex * segmentAngle);
+                const totalRotation = spinCount + targetRotation + (Math.random() * segmentAngle - segmentAngle / 2);
+                
+                wheel.addEventListener('transitionend', () => {
+                    startGameWithLetter(targetLetter);
+                    isSpinning = false;
+                    spinButton.disabled = false;
+                }, { once: true });
+                wheel.style.transform = `rotate(${totalRotation}deg)`;
+            }
+
+            function startGameWithLetter(letter) {
+                if (usedLetters.includes(letter)) {
+                    showConfirmationModal(`'${letter}' Kullanılmış`, 'Bu harfle daha önce oynandı. Yine de devam etmek istiyor musun?', () => createNewRound(letter));
+                } else {
+                    createNewRound(letter);
+                }
+            }
+
+            // --- Kategori Yönetimi ---
+            function editCategory(tag, span, oldCategory, index) {
+                playSound('click');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = oldCategory;
+                input.className = 'bg-gray-600 text-white rounded w-24 px-1 text-sm';
+                
+                tag.replaceChild(input, span);
+                input.focus();
+                input.select();
+
+                const save = () => {
+                    const newCategory = input.value.trim();
+                    if (newCategory && (newCategory === oldCategory || !categories.includes(newCategory))) {
+                        categories[index] = newCategory;
+                    }
+                    renderCategories();
+                    saveSettings();
+                };
+
+                input.addEventListener('blur', save, { once: true });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        input.blur();
+                    } else if (e.key === 'Escape') {
+                        input.removeEventListener('blur', save);
+                        renderCategories();
+                    }
+                });
+            }
+
+            function renderCategories() {
+                categoryList.innerHTML = '';
+                categories.forEach(cat => {
+                    const tag = document.createElement('div');
+                    tag.className = 'flex items-center bg-gray-700 text-white text-sm font-medium pl-3 pr-2 py-1 rounded-full';
+                    tag.innerHTML = `<span class="cursor-pointer">${cat}</span><button data-cat="${cat}" class="remove-category-btn ml-2 w-5 h-5 flex items-center justify-center bg-red-500/50 hover:bg-red-500 rounded-full transition-colors">&times;</button>`;
+                    categoryList.appendChild(tag);
+                });
+            }
+
+            addCategoryButton.addEventListener('click', () => {
+                playSound('click');
+                const newCategory = newCategoryInput.value.trim();
+                if (newCategory && !categories.includes(newCategory)) {
+                    categories.push(newCategory);
+                    renderCategories();
+                    saveSettings();
+                }
+                newCategoryInput.value = '';
+            });
+
+            categoryList.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target.classList.contains('remove-category-btn')) {
+                    playSound('click');
+                    const catToRemove = target.dataset.cat;
+                    showConfirmationModal('Kategoriyi Sil', `"${catToRemove}" kategorisi silinsin mi?`, () => {
+                        categories = categories.filter(c => c !== catToRemove);
+                        renderCategories();
+                        saveSettings();
+                    });
+                    return;
+                }
+                if (target.tagName === 'SPAN' && target.parentElement.classList.contains('flex')) {
+                    const tag = target.parentElement;
+                    const oldCategory = target.textContent;
+                    const index = categories.indexOf(oldCategory);
+                    if (index > -1) {
+                        editCategory(tag, target, oldCategory, index);
+                    }
+                }
+            });
+
+            // --- Tur Yönetimi ---
+            function updateGrandTotal() {
+                const completedRoundCards = roundsViewContent.querySelectorAll('.completed-round-card');
+                let grandTotal = 0;
+                completedRoundCards.forEach(card => {
+                    grandTotal += parseInt(card.dataset.score) || 0;
+                });
+                grandTotalScoreEl.textContent = grandTotal;
+
+                const hasCompletedRounds = completedRoundCards.length > 0;
+                const isRoundsViewActive = !roundsView.classList.contains('hidden');
+                
+                grandTotalPanel.classList.toggle('hidden', !hasCompletedRounds || !isRoundsViewActive);
+            }
+
+            function createNewRound(letter) {
+                if (activeRound) {
+                    showConfirmationModal('Aktif Tur Var', 'Mevcut turu bitirmeden yenisini başlatamazsınız.', () => {}, true);
+                    return;
+                }
+                
+                startChoiceModal.classList.add('hidden');
+                letterSelectionModal.classList.add('hidden');
+                if (!usedLetters.includes(letter)) usedLetters.push(letter);
+                roundCounter++;
+                
+                const roundDiv = document.createElement('div');
+                roundDiv.id = `round-${roundCounter}`;
+                roundDiv.className = 'themed-panel p-4 rounded-xl shadow-lg w-full';
+                roundDiv.dataset.letter = letter;
+                roundDiv.dataset.state = 'writing';
+
+                const categoryInputsHTML = categories.map(cat => `
+                    <div class="category-item">
+                        <label class="block text-sm font-bold mb-1" style="color: var(--accent-color)">${cat}</label>
+                        <div class="flex gap-2">
+                            <input type="text" data-letter="${letter}" class="word-input w-full bg-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2" style="--tw-ring-color: var(--accent-color)" placeholder="${letter} ile başlar...">
+                            <input type="number" min="0" class="score-input w-20 bg-gray-700 rounded-md px-3 py-2 text-center font-bold focus:outline-none focus:ring-2" style="--tw-ring-color: var(--success-color)" placeholder="Puan" disabled>
+                        </div>
+                    </div>
+                `).join('');
+
+                roundDiv.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-2xl font-bold">Harf: <span class="text-3xl" style="color: var(--accent-color)">${letter}</span></h3>
+                        <div class="text-right">
+                            <span class="text-sm font-bold text-gray-400">TOPLAM</span>
+                            <p class="total-score text-4xl font-black" style="color: var(--success-color)">0</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4 mb-6">${categoryInputsHTML}</div>
+                    <div class="action-buttons-container mt-6">
+                        <button class="score-mode-btn w-full px-8 py-3 text-white font-bold rounded-lg shadow-md" style="background-color: var(--success-color)">Puanlamaya Geç</button>
+                    </div>
+                `;
+                
+                gameViewContent.innerHTML = '';
+                gameViewContent.appendChild(roundDiv);
+                activeRound = roundDiv;
+                
+                gamePlaceholder.classList.add('hidden');
+                gameViewContent.classList.remove('hidden');
+
+                addRoundListeners(roundDiv);
+                switchView('game-view');
+            }
+            
+            function enterScoringMode(roundElement) {
+                roundElement.dataset.state = 'scoring';
+                roundElement.querySelectorAll('.score-input').forEach(el => el.disabled = false);
+                roundElement.querySelectorAll('.word-input').forEach(el => el.disabled = true);
+                
+                const buttonContainer = roundElement.querySelector('.action-buttons-container');
+                buttonContainer.innerHTML = `
+                    <div class="flex gap-2">
+                        <button class="return-to-game-btn flex-1 px-4 py-3 text-white font-bold rounded-lg shadow-md bg-gray-600">Oyuna Geri Dön</button>
+                        <button class="hold-to-finish-btn flex-1 px-4 py-3 text-white font-bold rounded-lg shadow-md relative" style="background-color: var(--danger-color);">
+                            <div class="hold-progress"></div>
+                            <span class="relative">Turu Bitir (Basılı Tut)</span>
+                        </button>
+                    </div>
+                `;
+                addRoundListeners(roundElement);
+            }
+
+            function exitScoringMode(roundElement) {
+                roundElement.dataset.state = 'writing';
+                roundElement.querySelectorAll('.score-input').forEach(el => el.disabled = true);
+                roundElement.querySelectorAll('.word-input').forEach(el => el.disabled = false);
+
+                const buttonContainer = roundElement.querySelector('.action-buttons-container');
+                buttonContainer.innerHTML = `<button class="score-mode-btn w-full px-8 py-3 text-white font-bold rounded-lg shadow-md" style="background-color: var(--success-color)">Puanlamaya Geç</button>`;
+                addRoundListeners(roundElement);
+            }
+
+            function addRoundListeners(roundElement) {
+                let holdTimeout;
+                let holdInterval;
+
+                const scoreModeBtn = roundElement.querySelector('.score-mode-btn');
+                if(scoreModeBtn) scoreModeBtn.addEventListener('click', () => enterScoringMode(roundElement));
+
+                const returnToGameBtn = roundElement.querySelector('.return-to-game-btn');
+                if(returnToGameBtn) returnToGameBtn.addEventListener('click', () => exitScoringMode(roundElement));
+                
+                const holdBtn = roundElement.querySelector('.hold-to-finish-btn');
+                if(holdBtn) {
+                    const progress = holdBtn.querySelector('.hold-progress');
+                    
+                    const startHold = () => {
+                        let startTime = Date.now();
+                        progress.style.transition = 'width 3s linear';
+                        progress.style.width = '100%';
+
+                        holdTimeout = setTimeout(() => {
+                            finalizeRound(roundElement);
+                        }, 3000);
+                    };
+                    const cancelHold = () => {
+                        clearTimeout(holdTimeout);
+                        progress.style.transition = 'width 0.2s linear';
+                        progress.style.width = '0%';
+                    };
+                    
+                    holdBtn.addEventListener('mousedown', startHold);
+                    holdBtn.addEventListener('touchstart', startHold);
+                    holdBtn.addEventListener('mouseup', cancelHold);
+                    holdBtn.addEventListener('mouseleave', cancelHold);
+                    holdBtn.addEventListener('touchend', cancelHold);
+                }
+
+                const scoreInputs = roundElement.querySelectorAll('.score-input');
+                const totalScoreEl = roundElement.querySelector('.total-score');
+                scoreInputs.forEach(input => {
+                    input.addEventListener('input', () => {
+                        let totalScore = 0;
+                        scoreInputs.forEach(si => { totalScore += parseInt(si.value) || 0; });
+                        totalScoreEl.textContent = totalScore;
+                    });
+                });
+
+                const wordInputs = roundElement.querySelectorAll('.word-input');
+                wordInputs.forEach(input => {
+                    const requiredLetter = input.dataset.letter.toLocaleLowerCase('tr');
+                    input.addEventListener('input', (e) => {
+                        const value = e.target.value;
+                        if (value.length > 0) {
+                            const firstChar = value[0].toLocaleLowerCase('tr');
+                            if (firstChar === 'ğ' || firstChar !== requiredLetter) {
+                                e.target.value = '';
+                            }
+                        }
+                    });
+                });
+            }
+
+            function finalizeRound(roundElement) {
+                const letter = roundElement.dataset.letter;
+                const totalScore = roundElement.querySelector('.total-score').textContent;
+                
+                const completedRoundCard = document.createElement('div');
+                completedRoundCard.className = 'themed-panel p-4 rounded-lg shadow-md flex justify-between items-center completed-round-card';
+                completedRoundCard.dataset.score = totalScore;
+                completedRoundCard.innerHTML = `
+                    <div>
+                        <h4 class="text-xl font-bold">Harf: <span style="color: var(--accent-color)">${letter}</span></h4>
+                        <p class="text-gray-400">Toplam Puan: <span class="font-bold text-white">${totalScore}</span></p>
+                    </div>
+                    <button class="delete-round-btn p-2 text-white rounded-lg" style="background-color: var(--danger-color)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                    </button>
+                `;
+                
+                roundsPlaceholder.classList.add('hidden');
+                roundsViewContent.prepend(completedRoundCard);
+                updateGrandTotal();
+                
+                activeRound = null;
+                gameViewContent.innerHTML = '';
+                gamePlaceholder.classList.remove('hidden');
+            }
+
+            roundsViewContent.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-round-btn');
+                if (deleteBtn) {
+                     playSound('click');
+                     showConfirmationModal('Turu Sil', 'Bu geçmiş tur kaydı kalıcı olarak silinecek.', () => {
+                         deleteBtn.closest('.completed-round-card').remove();
+                         if (roundsViewContent.querySelectorAll('.completed-round-card').length === 0) {
+                             roundsPlaceholder.classList.remove('hidden');
+                         }
+                         updateGrandTotal();
+                     });
+                }
+            });
+
+            // --- Zamanlayıcı Sistemleri ---
+            function updateTimerSystem() {
+                popupTimerToggle.classList.toggle('active', isPopupTimerEnabled);
+                popupTimer.classList.toggle('hidden', !isPopupTimerEnabled);
+                fallbackTimerContainer.classList.toggle('hidden', isPopupTimerEnabled);
+            }
+
+            // Fallback Timer
+            function updateFallbackTimerDisplay() {
+                const duration = parseInt(timerDurationInput.value) || 60;
+                timerMinutesEl.textContent = Math.floor(duration / 60).toString().padStart(2, '0');
+                timerSecondsEl.textContent = (duration % 60).toString().padStart(2, '0');
+            }
+            function resetFallbackTimer(playSoundOnClick = true) {
+                if(playSoundOnClick) playSound('click');
+                updateFallbackTimerDisplay();
+            }
+
+            // Pop-up Timer
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60).toString();
+                const secs = (seconds % 60).toString().padStart(2, '0');
+                return `${mins}:${secs}`;
+            }
+
+            function updatePopupTimerDisplay() {
+                const timeStr = formatTime(mainTimeLeft);
+                const expandedDisplay = document.getElementById('popup-timer-display');
+                if (expandedDisplay) expandedDisplay.textContent = timeStr;
+                popupTimerCollapsed.innerHTML = `<span class="font-bold text-lg">${timeStr}</span>`;
+            }
+
+            function startMainTimer(seconds) {
+                clearInterval(mainTimerInterval);
+                mainTimeLeft = seconds;
+                isMainTimerRunning = true;
+                renderPopupTimerView('running');
+                updatePopupTimerDisplay();
+
+                mainTimerInterval = setInterval(() => {
+                    mainTimeLeft--;
+                    updatePopupTimerDisplay();
+                    if (mainTimeLeft <= 0) {
+                        clearInterval(mainTimerInterval);
+                        isMainTimerRunning = false;
+                        playSound('timerEnd');
+                        body.classList.add('timer-flash');
+                        setTimeout(() => body.classList.remove('timer-flash'), 200);
+                        renderPopupTimerView('presets');
+                        popupTimerCollapsed.innerHTML = `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                    }
+                }, 1000);
+            }
+
+            function togglePauseMainTimer() {
+                isMainTimerRunning = !isMainTimerRunning;
+                if (isMainTimerRunning) {
+                    startMainTimer(mainTimeLeft);
+                } else {
+                    clearInterval(mainTimerInterval);
+                }
+                renderPopupTimerView('running');
+            }
+            
+            function cancelMainTimer() {
+                clearInterval(mainTimerInterval);
+                isMainTimerRunning = false;
+                mainTimeLeft = 0;
+                renderPopupTimerView('presets');
+                popupTimerCollapsed.innerHTML = `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            }
+
+            function renderPopupTimerView(viewName) {
+                let content = '';
+                if (viewName === 'presets') {
+                    const presets = [
+                        { label: '10 dak.', seconds: 600 }, { label: '5 dak.', seconds: 300 },
+                        { label: '1 dak.', seconds: 60 }, { label: '30 sn.', seconds: 30 }, { label: '10 sn.', seconds: 10 }
+                    ];
+                    content = `
+                        <div class="timer-view space-y-2">
+                            <div class="grid grid-cols-2 gap-2">
+                                ${presets.map(p => `<button class="preset-btn p-3 rounded-lg bg-gray-700 hover:bg-gray-600" data-seconds="${p.seconds}">${p.label}</button>`).join('')}
+                            </div>
+                            <button id="show-custom-setup" class="w-full p-3 rounded-lg bg-gray-700 hover:bg-gray-600 col-span-2">Zamanlayıcı Kur</button>
+                        </div>
+                    `;
+                } else if (viewName === 'running') {
+                    content = `
+                        <div class="timer-view text-center space-y-4">
+                            <div id="popup-timer-display" class="text-6xl font-black" style="color: var(--secondary-accent-color);">${formatTime(mainTimeLeft)}</div>
+                            <div class="flex gap-2">
+                                <button id="pause-resume-btn" class="flex-1 p-2 rounded-lg" style="background-color: var(--accent-color);">${isMainTimerRunning ? 'Durdur' : 'Sürdür'}</button>
+                                <button id="cancel-btn" class="flex-1 p-2 rounded-lg" style="background-color: var(--danger-color);">İptal Et</button>
+                            </div>
+                        </div>
+                    `;
+                } else if (viewName === 'custom') {
+                    content = `
+                        <div class="timer-view space-y-4">
+                            <h4 class="font-bold text-center">Özel Zamanlayıcı</h4>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="custom-min" class="w-full p-2 text-center bg-gray-700 rounded-md" placeholder="Dakika">
+                                <span class="font-bold">:</span>
+                                <input type="number" id="custom-sec" class="w-full p-2 text-center bg-gray-700 rounded-md" placeholder="Saniye">
+                            </div>
+                            <div class="flex gap-2">
+                                <button id="back-to-presets" class="flex-1 p-2 rounded-lg bg-gray-600">Geri</button>
+                                <button id="start-custom-btn" class="flex-1 p-2 rounded-lg" style="background-color: var(--success-color);">Başlat</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                popupTimerExpanded.innerHTML = content;
+                addPopupTimerListeners();
+            }
+
+            function addPopupTimerListeners() {
+                document.querySelectorAll('.preset-btn').forEach(btn => btn.addEventListener('click', e => startMainTimer(parseInt(e.target.dataset.seconds))));
+                document.getElementById('show-custom-setup')?.addEventListener('click', () => renderPopupTimerView('custom'));
+                document.getElementById('pause-resume-btn')?.addEventListener('click', togglePauseMainTimer);
+                document.getElementById('cancel-btn')?.addEventListener('click', cancelMainTimer);
+                document.getElementById('back-to-presets')?.addEventListener('click', () => renderPopupTimerView('presets'));
+                document.getElementById('start-custom-btn')?.addEventListener('click', () => {
+                    const mins = parseInt(document.getElementById('custom-min').value) || 0;
+                    const secs = parseInt(document.getElementById('custom-sec').value) || 0;
+                    const totalSeconds = (mins * 60) + secs;
+                    if (totalSeconds > 0) startMainTimer(totalSeconds);
+                });
+            }
+
+            // --- Tema ve Zamanlayıcı Görünümü ---
+            function applyTimerBlur() {
+                if (isTimerBlurEnabled) {
+                    const blurValue = (timerBlurAmount / 100) * 15; // 1.5px to 13.5px
+                    root.style.setProperty('--timer-blur-amount', `${blurValue}px`);
+                    root.style.setProperty('--timer-bg-color', `rgba(31, 41, 55, 0.7)`); // gray-800/70
+                } else {
+                    root.style.setProperty('--timer-blur-amount', `0px`);
+                    root.style.setProperty('--timer-bg-color', `var(--fg-color)`);
+                }
+            }
+
+            function createThemeSettings() {
+                themeSettingsContainer.innerHTML = `
+                    <div class="space-y-2">
+                        <h4 class="font-bold">Ana Renkler</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="flex flex-col"><label class="text-sm mb-1">Arka Plan</label><input type="color" id="bg-color-picker" class="w-full h-10 rounded-md border-0 cursor-pointer"></div>
+                            <div class="flex flex-col"><label class="text-sm mb-1">Paneller</label><input type="color" id="fg-color-picker" class="w-full h-10 rounded-md border-0 cursor-pointer"></div>
+                            <div class="flex flex-col"><label class="text-sm mb-1">Metin</label><input type="color" id="text-color-picker" class="w-full h-10 rounded-md border-0 cursor-pointer"></div>
+                            <div class="flex flex-col"><label class="text-sm mb-1">Vurgu</label><input type="color" id="accent-color-picker" class="w-full h-10 rounded-md border-0 cursor-pointer"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <h4 class="font-bold">Yazı Tipi</h4>
+                        <select id="font-selector" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2"></select>
+                    </div>
+                    <div class="space-y-2">
+                        <h4 class="font-bold">Zamanlayıcı Görünümü</h4>
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium">Arka Plan Bulanıklığı</span>
+                            <div id="timer-blur-toggle" class="toggle-switch">
+                                <div class="toggle-switch-handle"></div>
+                            </div>
+                        </div>
+                        <div id="timer-blur-slider-container" class="hidden">
+                             <input type="range" id="timer-blur-slider" min="10" max="90" value="10" class="w-full">
+                             <div class="text-center text-sm text-gray-400"><span id="timer-blur-label">10</span>%</div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button id="reset-theme-btn" class="w-full py-2 bg-gray-600 text-white font-bold rounded-lg">Ayarları Sıfırla</button>
+                    </div>
+                `;
+                const fontSelector = document.getElementById('font-selector');
+                const googleFonts = ['Nunito', 'Roboto', 'Open Sans', 'Lato', 'Poppins', 'Montserrat'];
+                fontSelector.innerHTML = googleFonts.map(f => `<option value="${f}" style="font-family:'${f}', sans-serif;">${f}</option>`).join('');
+                
+                const colorPickers = themeSettingsContainer.querySelectorAll('input[type="color"]');
+                colorPickers.forEach(picker => {
+                    const prop = `--${picker.id.replace('-picker', '')}`;
+                    picker.value = getComputedStyle(root).getPropertyValue(prop).trim();
+                    picker.addEventListener('input', () => {
+                        root.style.setProperty(prop, picker.value);
+                        saveSettings();
+                    });
+                });
+                fontSelector.addEventListener('change', () => applyFont(fontSelector.value));
+
+                document.getElementById('reset-theme-btn').addEventListener('click', () => {
+                    playSound('click');
+                    showConfirmationModal('Ayarları Sıfırla', 'Tüm tema ve yazı tipi ayarları varsayılana dönecek. Emin misiniz?', () => {
+                        Object.entries(defaultTheme).forEach(([prop, value]) => {
+                            root.style.setProperty(prop, value);
+                            const picker = document.getElementById(`${prop.replace('--', '')}-picker`);
+                            if (picker) picker.value = value;
+                        });
+                        applyFont(defaultFont);
+                        fontSelector.value = defaultFont;
+                        saveSettings();
+                    });
+                });
+
+                // Zamanlayıcı görünüm ayarları dinleyicileri
+                const timerBlurToggle = document.getElementById('timer-blur-toggle');
+                const timerBlurSliderContainer = document.getElementById('timer-blur-slider-container');
+                const timerBlurSlider = document.getElementById('timer-blur-slider');
+                const timerBlurLabel = document.getElementById('timer-blur-label');
+
+                timerBlurToggle.classList.toggle('active', isTimerBlurEnabled);
+                timerBlurSliderContainer.classList.toggle('hidden', !isTimerBlurEnabled);
+                timerBlurSlider.value = timerBlurAmount;
+                timerBlurLabel.textContent = timerBlurAmount;
+
+                timerBlurToggle.addEventListener('click', () => {
+                    isTimerBlurEnabled = !isTimerBlurEnabled;
+                    timerBlurToggle.classList.toggle('active');
+                    timerBlurSliderContainer.classList.toggle('hidden');
+                    applyTimerBlur();
+                    saveSettings();
+                });
+
+                timerBlurSlider.addEventListener('input', () => {
+                    timerBlurAmount = timerBlurSlider.value;
+                    timerBlurLabel.textContent = timerBlurAmount;
+                    applyTimerBlur();
+                    saveSettings();
+                });
+            }
+
+            function applyFont(fontName, shouldSave = true) {
+                const fontUrl = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@400;700;900&display=swap`;
+                document.getElementById('main-font-link').href = fontUrl;
+                root.style.setProperty('--font-family', `'${fontName}', sans-serif`);
+                if (shouldSave) saveSettings();
+            }
+
+            // --- Sürükleme ve Akıllı Menü Mantığı ---
+            let isDragging = false;
+            let hasDragged = false;
+            let offsetX, offsetY;
+
+            function positionExpandedTimerMenu() {
+                const timerRect = popupTimer.getBoundingClientRect();
+                const menu = popupTimerExpanded;
+                const menuWidth = 280;
+                const menuHeight = 250;
+
+                menu.style.top = 'auto';
+                menu.style.bottom = 'auto';
+                menu.style.left = 'auto';
+                menu.style.right = 'auto';
+
+                let transformOriginX, transformOriginY;
+
+                if (timerRect.left + menuWidth > window.innerWidth) {
+                    menu.style.right = '0px';
+                    transformOriginX = 'right';
+                } else {
+                    menu.style.left = '0px';
+                    transformOriginX = 'left';
+                }
+
+                if (timerRect.top + menuHeight > window.innerHeight) {
+                    menu.style.bottom = '0px';
+                    transformOriginY = 'bottom';
+                } else {
+                    menu.style.top = '0px';
+                    transformOriginY = 'top';
+                }
+
+                menu.style.transformOrigin = `${transformOriginY} ${transformOriginX}`;
+            }
+
+
+            function dragStart(e) {
+                if (popupTimer.classList.contains('open')) return;
+                isDragging = true;
+                hasDragged = false;
+                popupTimer.classList.add('dragging');
+                
+                const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+                const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+                
+                offsetX = clientX - popupTimer.offsetLeft;
+                offsetY = clientY - popupTimer.offsetTop;
+
+                window.addEventListener('mousemove', dragMove);
+                window.addEventListener('touchmove', dragMove);
+                window.addEventListener('mouseup', dragEnd);
+                window.addEventListener('touchend', dragEnd);
+            }
+
+            function dragMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                hasDragged = true;
+
+                const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+                let newX = clientX - offsetX;
+                let newY = clientY - offsetY;
+                
+                const maxX = window.innerWidth - popupTimer.offsetWidth;
+                const maxY = window.innerHeight - popupTimer.offsetHeight;
+                newX = Math.max(0, Math.min(newX, maxX));
+                newY = Math.max(0, Math.min(newY, maxY));
+
+                popupTimer.style.left = `${newX}px`;
+                popupTimer.style.top = `${newY}px`;
+                popupTimer.style.right = 'auto';
+            }
+
+            function dragEnd() {
+                isDragging = false;
+                popupTimer.classList.remove('dragging');
+                window.removeEventListener('mousemove', dragMove);
+                window.removeEventListener('touchmove', dragMove);
+                window.removeEventListener('mouseup', dragEnd);
+                window.removeEventListener('touchend', dragEnd);
+                
+                if (!hasDragged) {
+                    positionExpandedTimerMenu();
+                    popupTimer.classList.add('open');
+                    timerOverlay.classList.remove('hidden');
+                    if(!isMainTimerRunning) renderPopupTimerView('presets');
+                }
+            }
+
+            // --- Modallar ---
+            function showConfirmationModal(title, message, onConfirm, isAlert = false) {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                confirmCallback = onConfirm;
+                modalCancelBtn.classList.toggle('hidden', isAlert);
+                modalConfirmBtn.textContent = isAlert ? 'Tamam' : 'Onayla';
+                confirmationModal.classList.remove('hidden');
+            }
+
+            // --- Olay Dinleyicileri ---
+            bottomNavButtons.forEach(btn => btn.addEventListener('click', () => {
+                playSound('click');
+                switchView(btn.dataset.view);
+            }));
+
+            accordionToggles.forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    playSound('click');
+                    toggle.classList.toggle('open');
+                    toggle.nextElementSibling.classList.toggle('open');
+                });
+            });
+            
+            newRoundPlaceholderBtn.addEventListener('click', () => {
+                playSound('click');
+                startChoiceModal.classList.remove('hidden');
+            });
+            
+            spinWheelChoiceBtn.addEventListener('click', () => {
+                playSound('click');
+                startChoiceModal.classList.add('hidden');
+                switchView('start-view');
+            });
+
+            chooseLetterBtn.addEventListener('click', () => {
+                playSound('click');
+                startChoiceModal.classList.add('hidden');
+                letterSelectionModal.classList.remove('hidden');
+            });
+
+            startChoiceCancelBtn.addEventListener('click', () => startChoiceModal.classList.add('hidden'));
+            letterModalCancelBtn.addEventListener('click', () => letterSelectionModal.classList.add('hidden'));
+            spinButton.addEventListener('click', spinWheel);
+
+            // Zamanlayıcı Dinleyicileri
+            popupTimer.addEventListener('mousedown', dragStart);
+            popupTimer.addEventListener('touchstart', dragStart);
+
+            timerOverlay.addEventListener('click', () => {
+                popupTimer.classList.remove('open');
+                timerOverlay.classList.add('hidden');
+            });
+            popupTimerToggle.addEventListener('click', () => {
+                isPopupTimerEnabled = !isPopupTimerEnabled;
+                updateTimerSystem();
+                saveSettings();
+            });
+
+            modalConfirmBtn.addEventListener('click', () => {
+                if (typeof confirmCallback === 'function') confirmCallback();
+                confirmationModal.classList.add('hidden');
+            });
+            modalCancelBtn.addEventListener('click', () => modalCancelBtn.parentElement.parentElement.parentElement.classList.add('hidden'));
+
+            // --- Service Worker Registration ---
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(registration => {
+                            console.log('ServiceWorker registration successful:', registration.scope);
+                        })
+                        .catch(err => {
+                            console.log('ServiceWorker registration failed:', err);
+                        });
+                });
+            }
+
+            // --- Başlangıç ---
+            function initialize() {
+                loadSettings();
+                createThemeSettings();
+                createWheel();
+                renderCategories();
+                
+                alphabetGrid.innerHTML = TURKISH_ALPHABET.filter(l => l !== 'Ğ').map(letter => 
+                    `<button data-letter="${letter}" class="letter-btn p-2 font-bold text-lg rounded-md bg-gray-600 hover:bg-gray-500">${letter}</button>`
+                ).join('');
+                
+                alphabetGrid.addEventListener('click', e => {
+                    if(e.target.classList.contains('letter-btn')) {
+                        playSound('click');
+                        startGameWithLetter(e.target.dataset.letter);
+                    }
+                });
+
+                resetFallbackTimer(false);
+                switchView('game-view');
+                gamePlaceholder.classList.remove('hidden');
+                updateGrandTotal();
+            }
+
+            initialize();
+        });
+    </script>
+</body>
+</html>
