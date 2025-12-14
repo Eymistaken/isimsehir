@@ -1,4 +1,4 @@
-const CACHE_NAME = 'isim-sehir-v5';
+const CACHE_NAME = 'isim-sehir-v6';
 
 // Önbelleğe alınacak dosyalar listesi
 const STATIC_ASSETS = [

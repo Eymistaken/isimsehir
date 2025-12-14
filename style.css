@@ -65,6 +65,9 @@ button {
     line-height: inherit;
     color: inherit;
     text-transform: none;
+    /* Butonlarda metin seçimini genel olarak kapatıyoruz */
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 /* Dokunma vurgusunu kaldır */
@@ -85,7 +88,7 @@ body {
 
 /* --- 3. ÖZEL OYUN STİLLERİ --- */
 
-/* YENİ EKLENEN KISIM: Input Yazı Renkleri (Bej/Beyaz) */
+/* Input Yazı Renkleri (Bej/Beyaz) */
 input {
     color: #fef3c7 !important;
     /* Açık bej rengi (Amber-100) */
@@ -97,7 +100,6 @@ input::placeholder {
     opacity: 0.7;
 }
 
-/* Özel input sınıfları için garanti olsun */
 .word-input,
 .score-input,
 #new-category-input,
@@ -320,9 +322,16 @@ body.timer-flash {
     background-color: var(--fg-color);
 }
 
+/* DÜZELTME BURADA: Metin seçimini ve context menüyü engelle */
 .hold-to-finish-btn {
     position: relative;
     overflow: hidden;
+    user-select: none;
+    /* Metin seçimini engeller */
+    -webkit-user-select: none;
+    /* Safari/Chrome Mobil için */
+    -webkit-touch-callout: none;
+    /* Basılı tutunca çıkan menüyü engeller */
 }
 
 .hold-progress {
