@@ -3,227 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- PWA ve Mobil Uyumluluk -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
     <title>İsim Şehir Oyunu (Mobil)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link id="main-font-link" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --font-family: 'Nunito', sans-serif;
-            --bg-color: #111827; /* gray-900 */
-            --bg-image: none;
-            --fg-color: #1f2937; /* gray-800 */
-            --text-color: #e5e7eb; /* gray-200 */
-            --accent-color: #f59e0b; /* amber-500 */
-            --secondary-accent-color: #38bdf8; /* lightBlue-400 */
-            --success-color: #10b981; /* emerald-500 */
-            --danger-color: #ef4444; /* red-500 */
-            --nav-bg-color: rgba(17, 24, 39, 0.8); /* gray-900/80 */
-            --timer-blur-amount: 0px;
-            --timer-bg-color: var(--fg-color);
-        }
-        /* Dokunma vurgusunu kaldırma */
-        * { -webkit-tap-highlight-color: transparent; }
 
-        body {
-            font-family: var(--font-family);
-            background-color: var(--bg-color);
-            background-image: var(--bg-image);
-            color: var(--text-color);
-            overflow: hidden; /* Sayfanın kaymasını engelle */
-            transition: background-color 0.1s;
-        }
-        body.timer-flash {
-            background-color: var(--danger-color) !important;
-        }
-        .view {
-            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-            padding-bottom: 8rem; 
-        }
-        #game-view, #rounds-view, #manage-view {
-            padding-bottom: 12rem;
-        }
-        .view.hidden {
-            opacity: 0;
-            transform: scale(0.98);
-            pointer-events: none;
-            position: absolute;
-        }
-        #wheel {
-            transition: transform 4s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-        .letter {
-            position: absolute;
-            width: 100%; height: 100%;
-            display: flex; align-items: flex-start; justify-content: center;
-            font-size: 1.25rem; font-weight: 900; color: #1a202c;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.3);
-        }
-        .modal-overlay {
-            transition: opacity 0.3s ease-in-out;
-        }
-        .modal-overlay.hidden {
-            opacity: 0; pointer-events: none;
-        }
-        .modal-content {
-            animation: modal-pop 0.3s ease-out;
-        }
-        @keyframes modal-pop {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .accordion-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
-        }
-        .accordion-content.open {
-            max-height: 800px;
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
-        .accordion-toggle .arrow {
-            transition: transform 0.3s;
-        }
-        .accordion-toggle.open .arrow {
-            transform: rotate(180deg);
-        }
-        .bottom-nav-btn.active {
-            color: var(--accent-color);
-        }
-        .alphabet-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
-            gap: 0.5rem;
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--accent-color); border-radius: 20px; }
-
-        /* Pop-up Zamanlayıcı Stilleri */
-        .popup-timer-container {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 100;
-            cursor: grab;
-        }
-        .popup-timer-container.dragging {
-            cursor: grabbing;
-            touch-action: none; /* HATA DÜZELTME: Sürüklerken sayfa yenilemeyi engelle */
-        }
-        .popup-timer-collapsed {
-            width: 60px;
-            height: 60px;
-            background-color: var(--timer-bg-color);
-            backdrop-filter: blur(var(--timer-blur-amount));
-            border: 2px solid var(--accent-color);
-            border-radius: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: all 0.2s ease-out;
-            pointer-events: none; /* Sürükleme için ana containera devret */
-        }
-        .popup-timer-expanded {
-            position: absolute;
-            width: 280px;
-            background-color: var(--timer-bg-color);
-            backdrop-filter: blur(var(--timer-blur-amount));
-            border-radius: 1rem;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.4);
-            overflow: hidden;
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-            transform: scale(0);
-            opacity: 0;
-            cursor: default;
-        }
-        .popup-timer-container.open .popup-timer-expanded {
-            transform: scale(1);
-            opacity: 1;
-        }
-        .timer-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 99;
-        }
-        .timer-view {
-            padding: 1rem;
-        }
-
-        .toggle-switch {
-            width: 50px;
-            height: 28px;
-            background-color: #4b5563;
-            border-radius: 9999px;
-            position: relative;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .toggle-switch.active {
-            background-color: var(--success-color);
-        }
-        .toggle-switch-handle {
-            width: 22px;
-            height: 22px;
-            background-color: white;
-            border-radius: 50%;
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            transition: transform 0.2s;
-        }
-        .toggle-switch.active .toggle-switch-handle {
-            transform: translateX(22px);
-        }
-        .themed-panel {
-            background-color: var(--fg-color);
-        }
-        .hold-to-finish-btn {
-            position: relative;
-            overflow: hidden;
-        }
-        .hold-progress {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 0;
-            background-color: rgba(255,255,255,0.2);
-            transition: width 0.1s linear;
-        }
-        .word-input:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .score-input:disabled {
-            filter: blur(3px);
-            pointer-events: none;
-            cursor: not-allowed;
-        }
-    </style>
+    <!-- Yerel CSS Dosyası (Tailwind ve Fontlar burada olacak) -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="h-screen w-screen flex flex-col">
 
+    <!-- OYUN ALANI -->
     <main class="flex-grow overflow-hidden relative w-full h-full">
+        <!-- Başlangıç Ekranı (Çark) -->
         <div id="start-view" class="view hidden w-full h-full flex flex-col items-center justify-center p-4">
             <div id="wheel-arrow" class="w-12 h-12 absolute z-10" style="color: var(--accent-color); top: calc(50% - 7rem);">
-                <svg class="w-full h-full drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"></path></svg>
+                <svg class="w-full h-full drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"></path></svg>
             </div>
             <div id="wheel" class="relative w-80 h-80 rounded-full bg-gradient-to-br from-slate-300 to-slate-500 border-8 border-slate-600 shadow-2xl flex items-center justify-center">
-                </div>
+            </div>
             <button id="spin-button" class="mt-8 px-10 py-4 text-slate-900 font-bold text-2xl rounded-lg shadow-lg transition-transform transform hover:scale-105" style="background-color: var(--accent-color)">
                 ÇEVİR
             </button>
         </div>
 
+        <!-- Oyun Ekranı -->
         <div id="game-view" class="view w-full h-full flex flex-col p-4 custom-scrollbar overflow-y-auto">
             <div id="game-view-content" class="w-full flex-grow">
-                </div>
+            </div>
             <div id="game-placeholder" class="hidden w-full h-full flex flex-col items-center justify-center text-center">
                 <h2 class="text-2xl font-bold text-gray-400">Oyun Alanı</h2>
                 <p class="text-gray-500 mt-2">Yeni bir tura başlamak için aşağıdaki butonu kullanın.</p>
@@ -233,6 +42,7 @@
             </div>
         </div>
 
+        <!-- Geçmiş Turlar Ekranı -->
         <div id="rounds-view" class="view hidden w-full h-full flex flex-col p-4 custom-scrollbar overflow-y-auto">
             <h1 class="text-3xl font-black mb-4 flex-shrink-0">Geçmiş Turlar</h1>
             <div id="rounds-view-content" class="w-full flex-grow space-y-4">
@@ -241,6 +51,8 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Genel Toplam Paneli -->
         <div id="grand-total-panel" class="hidden w-full fixed left-0 p-4 backdrop-blur-sm bg-gray-900/80 border-t border-gray-700 bottom-28">
             <div class="flex justify-between items-center w-full max-w-screen-sm mx-auto px-4">
                 <span class="text-xl font-bold">Genel Toplam:</span>
@@ -248,7 +60,7 @@
             </div>
         </div>
 
-
+        <!-- Ayarlar Ekranı -->
         <div id="manage-view" class="view hidden w-full h-full flex flex-col p-4 custom-scrollbar overflow-y-auto">
             <h1 class="text-3xl font-black mb-4 flex-shrink-0">Yönetim & Ayarlar</h1>
             <div class="space-y-4">
@@ -297,34 +109,36 @@
                         <span>Tema Ayarları</span><span class="arrow">▼</span>
                     </button>
                     <div id="theme-settings" class="accordion-content px-4 grid grid-cols-1 gap-y-4">
-                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- Alt Navigasyon -->
     <nav id="bottom-nav" class="fixed bottom-6 left-4 right-4 flex-shrink-0 grid grid-cols-3 gap-4 p-2 backdrop-blur-sm border border-gray-700 rounded-2xl" style="background-color: var(--nav-bg-color)">
         <button data-view="game-view" class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
             <span class="text-xs font-medium mt-1">Oyun</span>
         </button>
         <button data-view="rounds-view" class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
             <span class="text-xs font-medium mt-1">Turlar</span>
         </button>
         <button data-view="manage-view" class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
             <span class="text-xs font-medium mt-1">Ayarlar</span>
         </button>
     </nav>
     
+    <!-- Timer & Modallar -->
     <div id="timer-overlay" class="timer-overlay hidden"></div>
     <div id="popup-timer" class="popup-timer-container">
         <div id="popup-timer-collapsed" class="popup-timer-collapsed">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </div>
         <div id="popup-timer-expanded" class="popup-timer-expanded">
-            </div>
+        </div>
     </div>
 
     <div id="start-choice-modal" class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -358,10 +172,9 @@
         </div>
     </div>
 
-
+    <!-- JAVASCRIPT -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Elementleri ---
             const root = document.documentElement;
             const body = document.body;
             const views = document.querySelectorAll('.view');
@@ -515,7 +328,7 @@
                             if(picker) picker.value = settings.theme[prop];
                         });
                     }
-                    if (settings.font) applyFont(settings.font, false);
+                    // Font yükleme işlemi artık CSS dosyasında halledilecek, ancak state'i tutabiliriz.
                     
                     isPopupTimerEnabled = settings.isPopupTimerEnabled !== false;
                     isTimerBlurEnabled = settings.isTimerBlurEnabled === true;
@@ -1003,10 +816,7 @@
                             <div class="flex flex-col"><label class="text-sm mb-1">Vurgu</label><input type="color" id="accent-color-picker" class="w-full h-10 rounded-md border-0 cursor-pointer"></div>
                         </div>
                     </div>
-                    <div class="space-y-2">
-                        <h4 class="font-bold">Yazı Tipi</h4>
-                        <select id="font-selector" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2"></select>
-                    </div>
+                    <!-- Yazı tipi seçimi basit tutuldu, CSS dosyasında sadece Nunito var varsayımındayız -->
                     <div class="space-y-2">
                         <h4 class="font-bold">Zamanlayıcı Görünümü</h4>
                         <div class="flex items-center justify-between">
@@ -1024,9 +834,8 @@
                         <button id="reset-theme-btn" class="w-full py-2 bg-gray-600 text-white font-bold rounded-lg">Ayarları Sıfırla</button>
                     </div>
                 `;
-                const fontSelector = document.getElementById('font-selector');
-                const googleFonts = ['Nunito', 'Roboto', 'Open Sans', 'Lato', 'Poppins', 'Montserrat'];
-                fontSelector.innerHTML = googleFonts.map(f => `<option value="${f}" style="font-family:'${f}', sans-serif;">${f}</option>`).join('');
+                // Font selector kaldırıldı çünkü artık offline font kullanıyoruz ve sadece Nunito var.
+                // İleride farklı font dosyaları eklenirse burası açılabilir.
                 
                 const colorPickers = themeSettingsContainer.querySelectorAll('input[type="color"]');
                 colorPickers.forEach(picker => {
@@ -1037,18 +846,15 @@
                         saveSettings();
                     });
                 });
-                fontSelector.addEventListener('change', () => applyFont(fontSelector.value));
 
                 document.getElementById('reset-theme-btn').addEventListener('click', () => {
                     playSound('click');
-                    showConfirmationModal('Ayarları Sıfırla', 'Tüm tema ve yazı tipi ayarları varsayılana dönecek. Emin misiniz?', () => {
+                    showConfirmationModal('Ayarları Sıfırla', 'Tüm tema ayarları varsayılana dönecek. Emin misiniz?', () => {
                         Object.entries(defaultTheme).forEach(([prop, value]) => {
                             root.style.setProperty(prop, value);
                             const picker = document.getElementById(`${prop.replace('--', '')}-picker`);
                             if (picker) picker.value = value;
                         });
-                        applyFont(defaultFont);
-                        fontSelector.value = defaultFont;
                         saveSettings();
                     });
                 });
@@ -1078,13 +884,6 @@
                     applyTimerBlur();
                     saveSettings();
                 });
-            }
-
-            function applyFont(fontName, shouldSave = true) {
-                const fontUrl = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@400;700;900&display=swap`;
-                document.getElementById('main-font-link').href = fontUrl;
-                root.style.setProperty('--font-family', `'${fontName}', sans-serif`);
-                if (shouldSave) saveSettings();
             }
 
             // --- Sürükleme ve Akıllı Menü Mantığı ---

@@ -1,0 +1,952 @@
+/* --- 1. FONT TANIMLAMALARI (OFFLINE) --- */
+@font-face {
+    font-family: 'Nunito';
+    src: url('./Nunito-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Nunito';
+    src: url('./Nunito-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Nunito';
+    src: url('./Nunito-Black.ttf') format('truetype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+/* --- 2. TEMEL DEĞİŞKENLER VE RESET --- */
+:root {
+    --font-family: 'Nunito', sans-serif;
+    --bg-color: #111827;
+    /* gray-900 */
+    --bg-image: none;
+    --fg-color: #1f2937;
+    /* gray-800 */
+    --text-color: #e5e7eb;
+    /* gray-200 */
+    --accent-color: #f59e0b;
+    /* amber-500 */
+    --secondary-accent-color: #38bdf8;
+    /* lightBlue-400 */
+    --success-color: #10b981;
+    /* emerald-500 */
+    --danger-color: #ef4444;
+    /* red-500 */
+    --nav-bg-color: rgba(17, 24, 39, 0.8);
+    /* gray-900/80 */
+    --timer-blur-amount: 0px;
+    --timer-bg-color: var(--fg-color);
+}
+
+/* Kapsamlı Reset (Tailwind Preflight Benzeri) */
+*,
+::before,
+::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: #e5e7eb;
+}
+
+/* Butonların varsayılan çirkin stillerini temizle */
+button {
+    background-color: transparent;
+    background-image: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    font-size: 100%;
+    line-height: inherit;
+    color: inherit;
+    text-transform: none;
+}
+
+/* Dokunma vurgusunu kaldır */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    background-image: var(--bg-image);
+    color: var(--text-color);
+    overflow: hidden;
+    transition: background-color 0.1s;
+    line-height: 1.5;
+}
+
+/* --- 3. ÖZEL OYUN STİLLERİ --- */
+
+/* EN ÖNEMLİ DÜZELTME: Gizleme Sınıfı */
+.hidden {
+    display: none !important;
+}
+
+body.timer-flash {
+    background-color: var(--danger-color) !important;
+}
+
+.view {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    padding-bottom: 8rem;
+}
+
+#game-view,
+#rounds-view,
+#manage-view {
+    padding-bottom: 12rem;
+}
+
+.view.hidden {
+    opacity: 0;
+    transform: scale(0.98);
+    pointer-events: none;
+    position: absolute;
+    display: flex;
+    /* Layout bozulmasın diye display flex kalıyor ama opacity 0 */
+    visibility: hidden;
+    /* Tamamen gizle */
+}
+
+/* Çark Animasyonları */
+#wheel {
+    transition: transform 4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.letter {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #1a202c;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+/* Modal Efektleri */
+.modal-overlay {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+    display: none !important;
+}
+
+.modal-content {
+    animation: modal-pop 0.3s ease-out;
+}
+
+@keyframes modal-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Akordiyon Menü */
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+}
+
+.accordion-content.open {
+    max-height: 800px;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.accordion-toggle .arrow {
+    transition: transform 0.3s;
+}
+
+.accordion-toggle.open .arrow {
+    transform: rotate(180deg);
+}
+
+/* Alt Menü Butonları */
+.bottom-nav-btn.active {
+    color: var(--accent-color);
+}
+
+/* Alfabe Grid */
+.alphabet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+    gap: 0.5rem;
+}
+
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--accent-color);
+    border-radius: 20px;
+}
+
+/* Pop-up Zamanlayıcı */
+.popup-timer-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 100;
+    cursor: grab;
+}
+
+.popup-timer-container.dragging {
+    cursor: grabbing;
+    touch-action: none;
+}
+
+.popup-timer-collapsed {
+    width: 60px;
+    height: 60px;
+    background-color: var(--timer-bg-color);
+    backdrop-filter: blur(var(--timer-blur-amount));
+    border: 2px solid var(--accent-color);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease-out;
+    pointer-events: none;
+}
+
+.popup-timer-expanded {
+    position: absolute;
+    width: 280px;
+    background-color: var(--timer-bg-color);
+    backdrop-filter: blur(var(--timer-blur-amount));
+    border-radius: 1rem;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    transform: scale(0);
+    opacity: 0;
+    cursor: default;
+}
+
+.popup-timer-container.open .popup-timer-expanded {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.timer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+}
+
+.timer-view {
+    padding: 1rem;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    width: 50px;
+    height: 28px;
+    background-color: #4b5563;
+    border-radius: 9999px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.toggle-switch.active {
+    background-color: var(--success-color);
+}
+
+.toggle-switch-handle {
+    width: 22px;
+    height: 22px;
+    background-color: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.2s;
+}
+
+.toggle-switch.active .toggle-switch-handle {
+    transform: translateX(22px);
+}
+
+/* Diğer Bileşenler */
+.themed-panel {
+    background-color: var(--fg-color);
+}
+
+.hold-to-finish-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.hold-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: width 0.1s linear;
+}
+
+.word-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.score-input:disabled {
+    filter: blur(3px);
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+/* --- 4. TAILWIND REPLIKASYONU (Eksik sınıflar tamamlandı) --- */
+
+/* Layout & Pozisyon */
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.flex-grow {
+    flex-grow: 1;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.flex-shrink-0 {
+    flex-shrink: 0;
+}
+
+.flex-1 {
+    flex: 1 1 0%;
+}
+
+.grid {
+    display: grid;
+}
+
+.grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.h-screen {
+    height: 100vh;
+}
+
+.w-screen {
+    width: 100vw;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.h-full {
+    height: 100%;
+}
+
+.w-12 {
+    width: 3rem;
+}
+
+.h-12 {
+    height: 3rem;
+}
+
+.w-80 {
+    width: 20rem;
+}
+
+.h-80 {
+    height: 20rem;
+}
+
+.w-7 {
+    width: 1.75rem;
+}
+
+.h-7 {
+    height: 1.75rem;
+}
+
+.w-8 {
+    width: 2rem;
+}
+
+.h-8 {
+    height: 2rem;
+}
+
+.w-5 {
+    width: 1.25rem;
+}
+
+.h-5 {
+    height: 1.25rem;
+}
+
+.w-24 {
+    width: 6rem;
+}
+
+.w-20 {
+    width: 5rem;
+}
+
+.w-10 {
+    width: 2.5rem;
+}
+
+.h-10 {
+    height: 2.5rem;
+}
+
+.max-w-sm {
+    max-width: 24rem;
+}
+
+.max-w-md {
+    max-width: 28rem;
+}
+
+.max-w-screen-sm {
+    max-width: 640px;
+}
+
+.absolute {
+    position: absolute;
+}
+
+.relative {
+    position: relative;
+}
+
+.fixed {
+    position: fixed;
+}
+
+.inset-0 {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.top-3 {
+    top: 0.75rem;
+}
+
+.left-3 {
+    left: 0.75rem;
+}
+
+.bottom-6 {
+    bottom: 1.5rem;
+}
+
+.left-4 {
+    left: 1rem;
+}
+
+.right-4 {
+    right: 1rem;
+}
+
+.bottom-28 {
+    bottom: 7rem;
+}
+
+.left-0 {
+    left: 0;
+}
+
+.overflow-hidden {
+    overflow: hidden;
+}
+
+.overflow-y-auto {
+    overflow-y: auto;
+}
+
+.z-10 {
+    z-index: 10;
+}
+
+.z-50 {
+    z-index: 50;
+}
+
+/* Hizalama */
+.items-center {
+    align-items: center;
+}
+
+.items-start {
+    align-items: flex-start;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.mx-auto {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Boşluklar */
+.p-2 {
+    padding: 0.5rem;
+}
+
+.p-3 {
+    padding: 0.75rem;
+}
+
+.p-4 {
+    padding: 1rem;
+}
+
+.p-6 {
+    padding: 1.5rem;
+}
+
+.px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+.px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.px-6 {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+.px-8 {
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+.px-10 {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+}
+
+.py-1 {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.py-3 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+}
+
+.py-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.pl-3 {
+    padding-left: 0.75rem;
+}
+
+.pr-2 {
+    padding-right: 0.5rem;
+}
+
+.m-0 {
+    margin: 0;
+}
+
+.mt-1 {
+    margin-top: 0.25rem;
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.mt-6 {
+    margin-top: 1.5rem;
+}
+
+.mt-8 {
+    margin-top: 2rem;
+}
+
+.mb-1 {
+    margin-bottom: 0.25rem;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.mb-6 {
+    margin-bottom: 1.5rem;
+}
+
+.ml-2 {
+    margin-left: 0.5rem;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.gap-3 {
+    gap: 0.75rem;
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+.gap-y-4 {
+    row-gap: 1rem;
+}
+
+.space-y-2> :not([hidden])~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+}
+
+.space-y-4> :not([hidden])~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+}
+
+/* Renkler */
+.text-white {
+    color: #ffffff;
+}
+
+.text-slate-900 {
+    color: #0f172a;
+}
+
+.text-gray-400 {
+    color: #9ca3af;
+}
+
+.text-gray-500 {
+    color: #6b7280;
+}
+
+.bg-white {
+    background-color: #ffffff;
+}
+
+.bg-black {
+    background-color: #000000;
+}
+
+.bg-gray-600 {
+    background-color: #4b5563;
+}
+
+.bg-gray-700 {
+    background-color: #374151;
+}
+
+.bg-gray-800 {
+    background-color: #1f2937;
+}
+
+.bg-gray-900 {
+    background-color: #111827;
+}
+
+.bg-gray-900\/80 {
+    background-color: rgba(17, 24, 39, 0.8);
+}
+
+.bg-opacity-70 {
+    --tw-bg-opacity: 0.7;
+}
+
+.bg-red-500 {
+    background-color: #ef4444;
+}
+
+.bg-red-500\/50 {
+    background-color: rgba(239, 68, 68, 0.5);
+}
+
+.hover\:bg-gray-500:hover {
+    background-color: #6b7280;
+}
+
+.hover\:bg-gray-600:hover {
+    background-color: #4b5563;
+}
+
+.hover\:bg-red-500:hover {
+    background-color: #ef4444;
+}
+
+/* Gradyanlar */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+
+.from-slate-300 {
+    --tw-gradient-from: #cbd5e1;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(203, 213, 225, 0));
+}
+
+.to-slate-500 {
+    --tw-gradient-to: #64748b;
+}
+
+/* Tipografi */
+.font-bold {
+    font-weight: 700;
+}
+
+.font-black {
+    font-weight: 900;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+}
+
+.text-3xl {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+}
+
+.text-4xl {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+}
+
+.text-5xl {
+    font-size: 3rem;
+    line-height: 1;
+}
+
+.block {
+    display: block;
+}
+
+/* Sınırlar ve Efektler */
+.rounded {
+    border-radius: 0.25rem;
+}
+
+.rounded-md {
+    border-radius: 0.375rem;
+}
+
+.rounded-lg {
+    border-radius: 0.5rem;
+}
+
+.rounded-xl {
+    border-radius: 0.75rem;
+}
+
+.rounded-2xl {
+    border-radius: 1rem;
+}
+
+.rounded-full {
+    border-radius: 9999px;
+}
+
+.border {
+    border-width: 1px;
+}
+
+.border-2 {
+    border-width: 2px;
+}
+
+.border-4 {
+    border-width: 4px;
+}
+
+.border-8 {
+    border-width: 8px;
+}
+
+.border-t {
+    border-top-width: 1px;
+}
+
+.border-0 {
+    border-width: 0px;
+}
+
+.border-gray-600 {
+    border-color: #4b5563;
+}
+
+.border-gray-700 {
+    border-color: #374151;
+}
+
+.border-slate-600 {
+    border-color: #475569;
+}
+
+.border-slate-800 {
+    border-color: #1e293b;
+}
+
+.shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-xl {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-2xl {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.drop-shadow-lg {
+    filter: drop-shadow(0 10px 8px rgba(0, 0, 0, 0.04)) drop-shadow(0 4px 3px rgba(0, 0, 0, 0.1));
+}
+
+.backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+}
+
+.focus\:outline-none:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+}
+
+.focus\:ring-2:focus {
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), 0 0 transparent;
+}
+
+/* Animasyonlar ve Etkileşim */
+.transition-colors {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.transition-transform {
+    transition-property: transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.transform {
+    transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.hover\:scale-105:hover {
+    transform: scale(1.05);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}

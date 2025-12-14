@@ -1,55 +1,68 @@
-const CACHE_NAME = 'isim-sehir-v1';
-// Önbelleğe alınacak temel dosyalar (CDNs dahil)
+const CACHE_NAME = 'isim-sehir-v3';
+
+// Önbelleğe alınacak dosyalar listesi
+// NOT: İkonları kaldırdık, sadece oyunun çalışması için gerekenler kaldı.
 const STATIC_ASSETS = [
   './',
   './index.html',
-  'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap'
+  './manifest.json',
+  './style.css'
 ];
 
-// Kurulum (Install)
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Beklemeden aktif ol
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
+      // Dosyaları önbelleğe al
       return cache.addAll(STATIC_ASSETS);
     })
   );
 });
 
-// Aktifleştirme (Activate) - Eski versiyonları temizle
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
         keys.map(key => {
-            if (key !== CACHE_NAME) {
-             return caches.delete(key);
-            }
+          // Eski versiyon cache'leri temizle
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
         })
       );
-    }).then(() => self.clients.claim()) // Hemen kontrolü ele al
+    }).then(() => self.clients.claim())
   );
 });
 
-// İstekleri Yakalama (Fetch) - Network First (Önce İnternet, Yoksa Cache)
 self.addEventListener('fetch', event => {
+  // Sadece HTTP(S) isteklerini yakala
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith(
+    // Önce internete gitmeye çalış (Güncel versiyon için)
     fetch(event.request)
       .then(response => {
-        // İnternetten başarılı cevap geldiyse, cache'i güncelle
-        if (!response || response.status !== 200 || response.type !== 'basic' && response.type !== 'cors') {
-            return response;
+        // Cevap başarılıysa cache'i güncelle
+        if (response && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
         }
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
-        });
         return response;
       })
       .catch(() => {
         // İnternet yoksa cache'den dön
-        return caches.match(event.request);
+        return caches.match(event.request)
+          .then(cachedResponse => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Eğer sayfa isteğiyse ve cache'de yoksa index.html dön
+            if (event.request.mode === 'navigate') {
+              return caches.match('./index.html');
+            }
+          });
       })
   );
 });
