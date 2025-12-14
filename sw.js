@@ -1,7 +1,6 @@
-const CACHE_NAME = 'isim-sehir-v3';
+const CACHE_NAME = 'isim-sehir-v4';
 
 // Önbelleğe alınacak dosyalar listesi
-// NOT: İkonları kaldırdık, sadece oyunun çalışması için gerekenler kaldı.
 const STATIC_ASSETS = [
   './',
   './index.html',
