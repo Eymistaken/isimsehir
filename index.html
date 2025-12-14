@@ -1,30 +1,40 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
+
     <!-- PWA ve Mobil Uyumluluk -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
     <title>İsim Şehir Oyunu (Mobil)</title>
 
-    <!-- Yerel CSS Dosyası (Tailwind ve Fontlar burada olacak) -->
+    <!-- Yerel CSS Dosyası -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="h-screen w-screen flex flex-col">
 
     <!-- OYUN ALANI -->
     <main class="flex-grow overflow-hidden relative w-full h-full">
         <!-- Başlangıç Ekranı (Çark) -->
         <div id="start-view" class="view hidden w-full h-full flex flex-col items-center justify-center p-4">
-            <div id="wheel-arrow" class="w-12 h-12 absolute z-10" style="color: var(--accent-color); top: calc(50% - 7rem);">
-                <svg class="w-full h-full drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"></path></svg>
+            <div id="wheel-arrow" class="w-12 h-12 absolute z-10"
+                style="color: var(--accent-color); top: calc(50% - 7rem);">
+                <svg class="w-full h-full drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
+                        clip-rule="evenodd"></path>
+                </svg>
             </div>
-            <div id="wheel" class="relative w-80 h-80 rounded-full bg-gradient-to-br from-slate-300 to-slate-500 border-8 border-slate-600 shadow-2xl flex items-center justify-center">
+            <div id="wheel"
+                class="relative w-80 h-80 rounded-full bg-gradient-to-br from-slate-300 to-slate-500 border-8 border-slate-600 shadow-2xl flex items-center justify-center">
             </div>
-            <button id="spin-button" class="mt-8 px-10 py-4 text-slate-900 font-bold text-2xl rounded-lg shadow-lg transition-transform transform hover:scale-105" style="background-color: var(--accent-color)">
+            <button id="spin-button"
+                class="mt-8 px-10 py-4 text-slate-900 font-bold text-2xl rounded-lg shadow-lg transition-transform transform hover:scale-105"
+                style="background-color: var(--accent-color)">
                 ÇEVİR
             </button>
         </div>
@@ -33,10 +43,13 @@
         <div id="game-view" class="view w-full h-full flex flex-col p-4 custom-scrollbar overflow-y-auto">
             <div id="game-view-content" class="w-full flex-grow">
             </div>
-            <div id="game-placeholder" class="hidden w-full h-full flex flex-col items-center justify-center text-center">
+            <div id="game-placeholder"
+                class="hidden w-full h-full flex flex-col items-center justify-center text-center">
                 <h2 class="text-2xl font-bold text-gray-400">Oyun Alanı</h2>
                 <p class="text-gray-500 mt-2">Yeni bir tura başlamak için aşağıdaki butonu kullanın.</p>
-                <button id="new-round-placeholder-btn" class="mt-8 px-8 py-3 text-white font-bold rounded-lg shadow-md transition-colors" style="background-color: var(--success-color)">
+                <button id="new-round-placeholder-btn"
+                    class="mt-8 px-8 py-3 text-white font-bold rounded-lg shadow-md transition-colors"
+                    style="background-color: var(--success-color)">
                     Yeni Tur Başlat
                 </button>
             </div>
@@ -46,14 +59,16 @@
         <div id="rounds-view" class="view hidden w-full h-full flex flex-col p-4 custom-scrollbar overflow-y-auto">
             <h1 class="text-3xl font-black mb-4 flex-shrink-0">Geçmiş Turlar</h1>
             <div id="rounds-view-content" class="w-full flex-grow space-y-4">
-                <div id="rounds-placeholder" class="w-full h-full flex flex-col items-center justify-center text-center text-gray-500">
+                <div id="rounds-placeholder"
+                    class="w-full h-full flex flex-col items-center justify-center text-center text-gray-500">
                     <p class="text-lg">Henüz tamamlanmış bir tur yok.</p>
                 </div>
             </div>
         </div>
-        
+
         <!-- Genel Toplam Paneli -->
-        <div id="grand-total-panel" class="hidden w-full fixed left-0 p-4 backdrop-blur-sm bg-gray-900/80 border-t border-gray-700 bottom-28">
+        <div id="grand-total-panel"
+            class="hidden w-full fixed left-0 p-4 backdrop-blur-sm bg-gray-900/80 border-t border-gray-700 bottom-28">
             <div class="flex justify-between items-center w-full max-w-screen-sm mx-auto px-4">
                 <span class="text-xl font-bold">Genel Toplam:</span>
                 <span id="grand-total-score" class="text-3xl font-black" style="color: var(--success-color);">0</span>
@@ -71,13 +86,16 @@
                     <div class="accordion-content px-4">
                         <div id="category-list" class="flex flex-wrap gap-2 mb-4"></div>
                         <div class="flex gap-2">
-                            <input type="text" id="new-category-input" placeholder="Yeni kategori..." class="flex-grow bg-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2" style="--tw-ring-color: var(--accent-color)">
-                            <button id="add-category-button" class="px-4 py-2 text-white font-bold rounded-lg" style="background-color: var(--accent-color)">Ekle</button>
+                            <input type="text" id="new-category-input" placeholder="Yeni kategori..."
+                                class="flex-grow bg-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2"
+                                style="--tw-ring-color: var(--accent-color)">
+                            <button id="add-category-button" class="px-4 py-2 text-white font-bold rounded-lg"
+                                style="background-color: var(--accent-color)">Ekle</button>
                         </div>
                     </div>
                 </div>
                 <div class="themed-panel rounded-lg">
-                     <button class="accordion-toggle w-full flex justify-between items-center p-4 font-bold text-lg">
+                    <button class="accordion-toggle w-full flex justify-between items-center p-4 font-bold text-lg">
                         <span>Zamanlayıcı</span><span class="arrow">▼</span>
                     </button>
                     <div class="accordion-content px-4 space-y-4">
@@ -89,85 +107,138 @@
                         </div>
                         <div id="fallback-timer-container" class="hidden">
                             <div class="flex items-center justify-center gap-4">
-                                <div class="text-5xl font-black timer-display" style="color: var(--secondary-accent-color)">
+                                <div class="text-5xl font-black timer-display"
+                                    style="color: var(--secondary-accent-color)">
                                     <span id="timer-minutes">01</span>:<span id="timer-seconds">00</span>
                                 </div>
                                 <div class="flex flex-col gap-2">
-                                    <button id="timer-start-stop" class="px-4 py-1 text-white font-bold rounded-md" style="background-color: var(--success-color)">Başlat</button>
-                                    <button id="timer-reset" class="px-4 py-1 bg-gray-600 text-white font-bold rounded-md">Sıfırla</button>
+                                    <button id="timer-start-stop" class="px-4 py-1 text-white font-bold rounded-md"
+                                        style="background-color: var(--success-color)">Başlat</button>
+                                    <button id="timer-reset"
+                                        class="px-4 py-1 bg-gray-600 text-white font-bold rounded-md">Sıfırla</button>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 mt-4">
                                 <label for="timer-duration-input" class="font-medium text-sm">Süre (sn):</label>
-                                <input type="number" id="timer-duration-input" value="60" min="1" class="w-full bg-gray-700 rounded-md px-3 py-1 text-center focus:outline-none focus:ring-2" style="--tw-ring-color: var(--secondary-accent-color)">
+                                <input type="number" id="timer-duration-input" value="60" min="1"
+                                    class="w-full bg-gray-700 rounded-md px-3 py-1 text-center focus:outline-none focus:ring-2"
+                                    style="--tw-ring-color: var(--secondary-accent-color)">
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="themed-panel rounded-lg">
-                     <button class="accordion-toggle w-full flex justify-between items-center p-4 font-bold text-lg">
+                    <button class="accordion-toggle w-full flex justify-between items-center p-4 font-bold text-lg">
                         <span>Tema Ayarları</span><span class="arrow">▼</span>
                     </button>
                     <div id="theme-settings" class="accordion-content px-4 grid grid-cols-1 gap-y-4">
                     </div>
+                </div>
+
+                <!-- YENİ EKLENEN KISIM: GÜNCELLEME BUTONU -->
+                <div class="themed-panel rounded-lg p-4">
+                    <h4 class="font-bold text-lg mb-2">Versiyon & Güncelleme</h4>
+                    <p class="text-sm text-gray-400 mb-4">Eğer oyunda bir sorun varsa veya yeni özellikler görünmüyorsa
+                        güncellemeyi zorlayın.</p>
+                    <button id="force-update-btn"
+                        class="w-full py-3 text-white font-bold rounded-lg shadow-md flex items-center justify-center gap-2"
+                        style="background-color: var(--secondary-accent-color)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                        Güncellemeleri Kontrol Et
+                    </button>
                 </div>
             </div>
         </div>
     </main>
 
     <!-- Alt Navigasyon -->
-    <nav id="bottom-nav" class="fixed bottom-6 left-4 right-4 flex-shrink-0 grid grid-cols-3 gap-4 p-2 backdrop-blur-sm border border-gray-700 rounded-2xl" style="background-color: var(--nav-bg-color)">
-        <button data-view="game-view" class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+    <nav id="bottom-nav"
+        class="fixed bottom-6 left-4 right-4 flex-shrink-0 grid grid-cols-3 gap-4 p-2 backdrop-blur-sm border border-gray-700 rounded-2xl"
+        style="background-color: var(--nav-bg-color)">
+        <button data-view="game-view"
+            class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                </path>
+            </svg>
             <span class="text-xs font-medium mt-1">Oyun</span>
         </button>
-        <button data-view="rounds-view" class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+        <button data-view="rounds-view"
+            class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                </path>
+            </svg>
             <span class="text-xs font-medium mt-1">Turlar</span>
         </button>
-        <button data-view="manage-view" class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        <button data-view="manage-view"
+            class="bottom-nav-btn flex flex-col items-center justify-center p-2 rounded-lg transition-colors">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z">
+                </path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
             <span class="text-xs font-medium mt-1">Ayarlar</span>
         </button>
     </nav>
-    
+
     <!-- Timer & Modallar -->
     <div id="timer-overlay" class="timer-overlay hidden"></div>
     <div id="popup-timer" class="popup-timer-container">
         <div id="popup-timer-collapsed" class="popup-timer-collapsed">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
         </div>
         <div id="popup-timer-expanded" class="popup-timer-expanded">
         </div>
     </div>
 
-    <div id="start-choice-modal" class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+    <div id="start-choice-modal"
+        class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
         <div class="modal-content bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
             <h3 class="text-xl font-bold mb-4">Yeni Tura Nasıl Başlayalım?</h3>
             <p class="mb-6 text-gray-400">Harfi rastgele seçmek için çarkı çevirin veya listeden kendiniz seçin.</p>
             <div class="flex flex-col gap-3">
-                <button id="spin-wheel-choice-btn" class="w-full px-6 py-3 text-white font-bold rounded-lg" style="background-color: var(--success-color);">Çarkı Çevir</button>
-                <button id="choose-letter-btn" class="w-full px-6 py-3 bg-gray-600 text-white font-bold rounded-lg">Harf Seç</button>
-                <button id="start-choice-cancel-btn" class="w-full mt-2 py-2 text-gray-400 font-bold rounded-lg">İptal</button>
+                <button id="spin-wheel-choice-btn" class="w-full px-6 py-3 text-white font-bold rounded-lg"
+                    style="background-color: var(--success-color);">Çarkı Çevir</button>
+                <button id="choose-letter-btn" class="w-full px-6 py-3 bg-gray-600 text-white font-bold rounded-lg">Harf
+                    Seç</button>
+                <button id="start-choice-cancel-btn"
+                    class="w-full mt-2 py-2 text-gray-400 font-bold rounded-lg">İptal</button>
             </div>
         </div>
     </div>
 
-    <div id="letter-selection-modal" class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+    <div id="letter-selection-modal"
+        class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
         <div class="modal-content bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-center">
             <h3 class="text-xl font-bold mb-4">Bir Harf Seçin</h3>
             <div id="alphabet-grid" class="alphabet-grid"></div>
-            <button id="letter-modal-cancel-btn" class="mt-6 w-full px-6 py-3 bg-gray-600 text-white font-bold rounded-lg">Geri</button>
+            <button id="letter-modal-cancel-btn"
+                class="mt-6 w-full px-6 py-3 bg-gray-600 text-white font-bold rounded-lg">Geri</button>
         </div>
     </div>
 
-    <div id="confirmation-modal" class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+    <div id="confirmation-modal"
+        class="modal-overlay hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
         <div class="modal-content bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
             <h3 id="modal-title" class="text-xl font-bold mb-4">Emin misiniz?</h3>
             <p id="modal-message" class="mb-6 text-gray-400"></p>
             <div class="flex gap-4">
-                <button id="modal-cancel-btn" class="flex-1 px-6 py-2 bg-gray-600 text-white font-bold rounded-lg">İptal</button>
-                <button id="modal-confirm-btn" class="flex-1 px-6 py-2 text-white font-bold rounded-lg" style="background-color: var(--danger-color);">Onayla</button>
+                <button id="modal-cancel-btn"
+                    class="flex-1 px-6 py-2 bg-gray-600 text-white font-bold rounded-lg">İptal</button>
+                <button id="modal-confirm-btn" class="flex-1 px-6 py-2 text-white font-bold rounded-lg"
+                    style="background-color: var(--danger-color);">Onayla</button>
             </div>
         </div>
     </div>
@@ -198,6 +269,9 @@
             const grandTotalPanel = document.getElementById('grand-total-panel');
             const grandTotalScoreEl = document.getElementById('grand-total-score');
 
+            // YENİ: Güncelleme Butonu
+            const forceUpdateBtn = document.getElementById('force-update-btn');
+
             // Fallback Timer
             const fallbackTimerContainer = document.getElementById('fallback-timer-container');
             const timerDurationInput = document.getElementById('timer-duration-input');
@@ -205,7 +279,7 @@
             const timerResetButton = document.getElementById('timer-reset');
             const timerMinutesEl = document.getElementById('timer-minutes');
             const timerSecondsEl = document.getElementById('timer-seconds');
-            
+
             // Popup Timer
             const popupTimer = document.getElementById('popup-timer');
             const popupTimerToggle = document.getElementById('popup-timer-toggle');
@@ -226,7 +300,7 @@
             const modalMessage = document.getElementById('modal-message');
             const modalConfirmBtn = document.getElementById('modal-confirm-btn');
             const modalCancelBtn = document.getElementById('modal-cancel-btn');
-            
+
             // --- Değişkenler ---
             const TURKISH_ALPHABET = 'ABCÇDEFGHIİJKLMNOÖPRSŞTUVYZ'.split('');
             let categories = ['İsim', 'Şehir', 'Hayvan', 'Bitki', 'Eşya'];
@@ -236,7 +310,7 @@
             let activeRound = null;
             let confirmCallback = null;
             let audioCtx;
-            
+
             // Zamanlayıcı Değişkenleri
             let isPopupTimerEnabled = true;
             let isTimerBlurEnabled = false;
@@ -244,7 +318,7 @@
             let mainTimerInterval = null;
             let mainTimeLeft = 0;
             let isMainTimerRunning = false;
-            
+
             const defaultTheme = {
                 '--bg-color': '#111827',
                 '--fg-color': '#1f2937',
@@ -325,20 +399,19 @@
                         Object.keys(settings.theme).forEach(prop => {
                             root.style.setProperty(prop, settings.theme[prop])
                             const picker = document.getElementById(`${prop.replace('--', '')}-picker`);
-                            if(picker) picker.value = settings.theme[prop];
+                            if (picker) picker.value = settings.theme[prop];
                         });
                     }
-                    // Font yükleme işlemi artık CSS dosyasında halledilecek, ancak state'i tutabiliriz.
-                    
+
                     isPopupTimerEnabled = settings.isPopupTimerEnabled !== false;
                     isTimerBlurEnabled = settings.isTimerBlurEnabled === true;
                     timerBlurAmount = settings.timerBlurAmount || 10;
-                    
+
                     updateTimerSystem();
                     applyTimerBlur();
                 }
             }
-            
+
             // --- Çark ve Harf İşlemleri ---
             function createWheel() {
                 wheel.innerHTML = '<div class="w-12 h-12 bg-slate-700 rounded-full border-4 border-slate-800"></div>';
@@ -362,7 +435,7 @@
                 if (isSpinning) return;
                 const availableLetters = TURKISH_ALPHABET.filter(l => !usedLetters.includes(l) && l !== 'Ğ');
                 if (availableLetters.length === 0) {
-                    showConfirmationModal("Tüm Harfler Kullanıldı!", "Yeni tur için harf kalmadı.", () => {}, true);
+                    showConfirmationModal("Tüm Harfler Kullanıldı!", "Yeni tur için harf kalmadı.", () => { }, true);
                     return;
                 }
                 isSpinning = true;
@@ -374,7 +447,7 @@
                 const spinCount = 5 * 360;
                 const targetRotation = 360 - (targetIndex * segmentAngle);
                 const totalRotation = spinCount + targetRotation + (Math.random() * segmentAngle - segmentAngle / 2);
-                
+
                 wheel.addEventListener('transitionend', () => {
                     startGameWithLetter(targetLetter);
                     isSpinning = false;
@@ -398,7 +471,7 @@
                 input.type = 'text';
                 input.value = oldCategory;
                 input.className = 'bg-gray-600 text-white rounded w-24 px-1 text-sm';
-                
+
                 tag.replaceChild(input, span);
                 input.focus();
                 input.select();
@@ -477,21 +550,21 @@
 
                 const hasCompletedRounds = completedRoundCards.length > 0;
                 const isRoundsViewActive = !roundsView.classList.contains('hidden');
-                
+
                 grandTotalPanel.classList.toggle('hidden', !hasCompletedRounds || !isRoundsViewActive);
             }
 
             function createNewRound(letter) {
                 if (activeRound) {
-                    showConfirmationModal('Aktif Tur Var', 'Mevcut turu bitirmeden yenisini başlatamazsınız.', () => {}, true);
+                    showConfirmationModal('Aktif Tur Var', 'Mevcut turu bitirmeden yenisini başlatamazsınız.', () => { }, true);
                     return;
                 }
-                
+
                 startChoiceModal.classList.add('hidden');
                 letterSelectionModal.classList.add('hidden');
                 if (!usedLetters.includes(letter)) usedLetters.push(letter);
                 roundCounter++;
-                
+
                 const roundDiv = document.createElement('div');
                 roundDiv.id = `round-${roundCounter}`;
                 roundDiv.className = 'themed-panel p-4 rounded-xl shadow-lg w-full';
@@ -521,23 +594,23 @@
                         <button class="score-mode-btn w-full px-8 py-3 text-white font-bold rounded-lg shadow-md" style="background-color: var(--success-color)">Puanlamaya Geç</button>
                     </div>
                 `;
-                
+
                 gameViewContent.innerHTML = '';
                 gameViewContent.appendChild(roundDiv);
                 activeRound = roundDiv;
-                
+
                 gamePlaceholder.classList.add('hidden');
                 gameViewContent.classList.remove('hidden');
 
                 addRoundListeners(roundDiv);
                 switchView('game-view');
             }
-            
+
             function enterScoringMode(roundElement) {
                 roundElement.dataset.state = 'scoring';
                 roundElement.querySelectorAll('.score-input').forEach(el => el.disabled = false);
                 roundElement.querySelectorAll('.word-input').forEach(el => el.disabled = true);
-                
+
                 const buttonContainer = roundElement.querySelector('.action-buttons-container');
                 buttonContainer.innerHTML = `
                     <div class="flex gap-2">
@@ -566,15 +639,15 @@
                 let holdInterval;
 
                 const scoreModeBtn = roundElement.querySelector('.score-mode-btn');
-                if(scoreModeBtn) scoreModeBtn.addEventListener('click', () => enterScoringMode(roundElement));
+                if (scoreModeBtn) scoreModeBtn.addEventListener('click', () => enterScoringMode(roundElement));
 
                 const returnToGameBtn = roundElement.querySelector('.return-to-game-btn');
-                if(returnToGameBtn) returnToGameBtn.addEventListener('click', () => exitScoringMode(roundElement));
-                
+                if (returnToGameBtn) returnToGameBtn.addEventListener('click', () => exitScoringMode(roundElement));
+
                 const holdBtn = roundElement.querySelector('.hold-to-finish-btn');
-                if(holdBtn) {
+                if (holdBtn) {
                     const progress = holdBtn.querySelector('.hold-progress');
-                    
+
                     const startHold = () => {
                         let startTime = Date.now();
                         progress.style.transition = 'width 3s linear';
@@ -589,7 +662,7 @@
                         progress.style.transition = 'width 0.2s linear';
                         progress.style.width = '0%';
                     };
-                    
+
                     holdBtn.addEventListener('mousedown', startHold);
                     holdBtn.addEventListener('touchstart', startHold);
                     holdBtn.addEventListener('mouseup', cancelHold);
@@ -625,7 +698,7 @@
             function finalizeRound(roundElement) {
                 const letter = roundElement.dataset.letter;
                 const totalScore = roundElement.querySelector('.total-score').textContent;
-                
+
                 const completedRoundCard = document.createElement('div');
                 completedRoundCard.className = 'themed-panel p-4 rounded-lg shadow-md flex justify-between items-center completed-round-card';
                 completedRoundCard.dataset.score = totalScore;
@@ -638,11 +711,11 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
                     </button>
                 `;
-                
+
                 roundsPlaceholder.classList.add('hidden');
                 roundsViewContent.prepend(completedRoundCard);
                 updateGrandTotal();
-                
+
                 activeRound = null;
                 gameViewContent.innerHTML = '';
                 gamePlaceholder.classList.remove('hidden');
@@ -651,14 +724,14 @@
             roundsViewContent.addEventListener('click', (e) => {
                 const deleteBtn = e.target.closest('.delete-round-btn');
                 if (deleteBtn) {
-                     playSound('click');
-                     showConfirmationModal('Turu Sil', 'Bu geçmiş tur kaydı kalıcı olarak silinecek.', () => {
-                         deleteBtn.closest('.completed-round-card').remove();
-                         if (roundsViewContent.querySelectorAll('.completed-round-card').length === 0) {
-                             roundsPlaceholder.classList.remove('hidden');
-                         }
-                         updateGrandTotal();
-                     });
+                    playSound('click');
+                    showConfirmationModal('Turu Sil', 'Bu geçmiş tur kaydı kalıcı olarak silinecek.', () => {
+                        deleteBtn.closest('.completed-round-card').remove();
+                        if (roundsViewContent.querySelectorAll('.completed-round-card').length === 0) {
+                            roundsPlaceholder.classList.remove('hidden');
+                        }
+                        updateGrandTotal();
+                    });
                 }
             });
 
@@ -676,7 +749,7 @@
                 timerSecondsEl.textContent = (duration % 60).toString().padStart(2, '0');
             }
             function resetFallbackTimer(playSoundOnClick = true) {
-                if(playSoundOnClick) playSound('click');
+                if (playSoundOnClick) playSound('click');
                 updateFallbackTimerDisplay();
             }
 
@@ -725,7 +798,7 @@
                 }
                 renderPopupTimerView('running');
             }
-            
+
             function cancelMainTimer() {
                 clearInterval(mainTimerInterval);
                 isMainTimerRunning = false;
@@ -836,7 +909,7 @@
                 `;
                 // Font selector kaldırıldı çünkü artık offline font kullanıyoruz ve sadece Nunito var.
                 // İleride farklı font dosyaları eklenirse burası açılabilir.
-                
+
                 const colorPickers = themeSettingsContainer.querySelectorAll('input[type="color"]');
                 colorPickers.forEach(picker => {
                     const prop = `--${picker.id.replace('-picker', '')}`;
@@ -929,10 +1002,10 @@
                 isDragging = true;
                 hasDragged = false;
                 popupTimer.classList.add('dragging');
-                
+
                 const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
                 const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-                
+
                 offsetX = clientX - popupTimer.offsetLeft;
                 offsetY = clientY - popupTimer.offsetTop;
 
@@ -952,7 +1025,7 @@
 
                 let newX = clientX - offsetX;
                 let newY = clientY - offsetY;
-                
+
                 const maxX = window.innerWidth - popupTimer.offsetWidth;
                 const maxY = window.innerHeight - popupTimer.offsetHeight;
                 newX = Math.max(0, Math.min(newX, maxX));
@@ -970,12 +1043,12 @@
                 window.removeEventListener('touchmove', dragMove);
                 window.removeEventListener('mouseup', dragEnd);
                 window.removeEventListener('touchend', dragEnd);
-                
+
                 if (!hasDragged) {
                     positionExpandedTimerMenu();
                     popupTimer.classList.add('open');
                     timerOverlay.classList.remove('hidden');
-                    if(!isMainTimerRunning) renderPopupTimerView('presets');
+                    if (!isMainTimerRunning) renderPopupTimerView('presets');
                 }
             }
 
@@ -988,6 +1061,30 @@
                 modalConfirmBtn.textContent = isAlert ? 'Tamam' : 'Onayla';
                 confirmationModal.classList.remove('hidden');
             }
+
+            // --- GÜNCELLEME İŞLEVİ ---
+            // Butona tıklandığında eski cache'leri siler ve sayfayı yeniler
+            forceUpdateBtn.addEventListener('click', () => {
+                playSound('click');
+                showConfirmationModal('Güncelleme Kontrolü', 'İnternet bağlantınız varsa en yeni dosyalar indirilecek ve sayfa yenilenecek. Devam edilsin mi?', async () => {
+                    // 1. Service Worker'ı kaldır (Unregister)
+                    if ('serviceWorker' in navigator) {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        for (let registration of registrations) {
+                            await registration.unregister();
+                        }
+                    }
+
+                    // 2. Cache (Önbellek) temizle
+                    if ('caches' in window) {
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map(key => caches.delete(key)));
+                    }
+
+                    // 3. Sayfayı sunucudan zorla yenile
+                    window.location.reload(true);
+                });
+            });
 
             // --- Olay Dinleyicileri ---
             bottomNavButtons.forEach(btn => btn.addEventListener('click', () => {
@@ -1002,12 +1099,12 @@
                     toggle.nextElementSibling.classList.toggle('open');
                 });
             });
-            
+
             newRoundPlaceholderBtn.addEventListener('click', () => {
                 playSound('click');
                 startChoiceModal.classList.remove('hidden');
             });
-            
+
             spinWheelChoiceBtn.addEventListener('click', () => {
                 playSound('click');
                 startChoiceModal.classList.add('hidden');
@@ -1063,13 +1160,13 @@
                 createThemeSettings();
                 createWheel();
                 renderCategories();
-                
-                alphabetGrid.innerHTML = TURKISH_ALPHABET.filter(l => l !== 'Ğ').map(letter => 
+
+                alphabetGrid.innerHTML = TURKISH_ALPHABET.filter(l => l !== 'Ğ').map(letter =>
                     `<button data-letter="${letter}" class="letter-btn p-2 font-bold text-lg rounded-md bg-gray-600 hover:bg-gray-500">${letter}</button>`
                 ).join('');
-                
+
                 alphabetGrid.addEventListener('click', e => {
-                    if(e.target.classList.contains('letter-btn')) {
+                    if (e.target.classList.contains('letter-btn')) {
                         playSound('click');
                         startGameWithLetter(e.target.dataset.letter);
                     }
@@ -1085,4 +1182,5 @@
         });
     </script>
 </body>
+
 </html>
