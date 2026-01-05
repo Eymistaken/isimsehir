@@ -574,9 +574,9 @@
                 const categoryInputsHTML = categories.map(cat => `
                     <div class="category-item">
                         <label class="block text-sm font-bold mb-1" style="color: var(--accent-color)">${cat}</label>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 items-center">
                             <input type="text" data-letter="${letter}" class="word-input w-full bg-gray-700 rounded-md px-3 py-2 focus:outline-none focus:ring-2" style="--tw-ring-color: var(--accent-color)" placeholder="${letter} ile başlar...">
-                            <input type="number" min="0" class="score-input w-20 bg-gray-700 rounded-md px-3 py-2 text-center font-bold focus:outline-none focus:ring-2" style="--tw-ring-color: var(--success-color)" placeholder="Puan" disabled>
+                            <div class="flex gap-1"><button class="score-btn score-5 w-10 h-10 rounded bg-gray-700 text-gray-400 font-bold border border-gray-600 disabled:opacity-50 transition-colors" data-value="5" disabled>5</button><button class="score-btn score-10 w-10 h-10 rounded bg-gray-700 text-gray-400 font-bold border border-gray-600 disabled:opacity-50 transition-colors" data-value="10" disabled>10</button></div>
                         </div>
                     </div>
                 `).join('');
@@ -602,13 +602,14 @@
                 gamePlaceholder.classList.add('hidden');
                 gameViewContent.classList.remove('hidden');
 
-                addRoundListeners(roundDiv);
+                bindPermanentListeners(roundDiv);
+                bindActionListeners(roundDiv);
                 switchView('game-view');
             }
 
             function enterScoringMode(roundElement) {
                 roundElement.dataset.state = 'scoring';
-                roundElement.querySelectorAll('.score-input').forEach(el => el.disabled = false);
+                roundElement.querySelectorAll('.score-btn').forEach(el => el.disabled = false);
                 roundElement.querySelectorAll('.word-input').forEach(el => el.disabled = true);
 
                 const buttonContainer = roundElement.querySelector('.action-buttons-container');
@@ -621,22 +622,21 @@
                         </button>
                     </div>
                 `;
-                addRoundListeners(roundElement);
+                bindActionListeners(roundElement);
             }
 
             function exitScoringMode(roundElement) {
                 roundElement.dataset.state = 'writing';
-                roundElement.querySelectorAll('.score-input').forEach(el => el.disabled = true);
+                roundElement.querySelectorAll('.score-btn').forEach(el => el.disabled = true);
                 roundElement.querySelectorAll('.word-input').forEach(el => el.disabled = false);
 
                 const buttonContainer = roundElement.querySelector('.action-buttons-container');
                 buttonContainer.innerHTML = `<button class="score-mode-btn w-full px-8 py-3 text-white font-bold rounded-lg shadow-md" style="background-color: var(--success-color)">Puanlamaya Geç</button>`;
-                addRoundListeners(roundElement);
+                bindActionListeners(roundElement);
             }
 
-            function addRoundListeners(roundElement) {
+            function bindActionListeners(roundElement) {
                 let holdTimeout;
-                let holdInterval;
 
                 const scoreModeBtn = roundElement.querySelector('.score-mode-btn');
                 if (scoreModeBtn) scoreModeBtn.addEventListener('click', () => enterScoringMode(roundElement));
@@ -650,12 +650,12 @@
 
                     const startHold = () => {
                         let startTime = Date.now();
-                        progress.style.transition = 'width 3s linear';
+                        progress.style.transition = 'width 1s linear';
                         progress.style.width = '100%';
 
                         holdTimeout = setTimeout(() => {
                             finalizeRound(roundElement);
-                        }, 3000);
+                        }, 1000);
                     };
                     const cancelHold = () => {
                         clearTimeout(holdTimeout);
@@ -669,13 +669,40 @@
                     holdBtn.addEventListener('mouseleave', cancelHold);
                     holdBtn.addEventListener('touchend', cancelHold);
                 }
+            }
 
-                const scoreInputs = roundElement.querySelectorAll('.score-input');
+            function bindPermanentListeners(roundElement) {
+                const scoreBtns = roundElement.querySelectorAll('.score-btn');
                 const totalScoreEl = roundElement.querySelector('.total-score');
-                scoreInputs.forEach(input => {
-                    input.addEventListener('input', () => {
+
+                scoreBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const clickedBtn = e.target;
+                        const parentDiv = clickedBtn.parentElement;
+                        const siblingBtns = parentDiv.querySelectorAll('.score-btn');
+
+                        // Toggle logic
+                        const isActive = clickedBtn.classList.contains('active');
+
+                        // Deactivate all siblings first
+                        siblingBtns.forEach(b => {
+                            b.classList.remove('active');
+                            b.style.backgroundColor = '';
+                            b.style.color = '';
+                        });
+
+                        if (!isActive) {
+                            clickedBtn.classList.add('active');
+                            clickedBtn.style.backgroundColor = 'var(--success-color)';
+                            clickedBtn.style.color = 'white';
+                        }
+
+                        // Calculate Total Score
                         let totalScore = 0;
-                        scoreInputs.forEach(si => { totalScore += parseInt(si.value) || 0; });
+                        const allActiveBtns = roundElement.querySelectorAll('.score-btn.active');
+                        allActiveBtns.forEach(b => {
+                            totalScore += parseInt(b.dataset.value) || 0;
+                        });
                         totalScoreEl.textContent = totalScore;
                     });
                 });
