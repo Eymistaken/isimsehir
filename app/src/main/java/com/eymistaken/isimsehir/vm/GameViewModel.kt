@@ -14,8 +14,11 @@ import com.eymistaken.isimsehir.model.TimerState
 import com.eymistaken.isimsehir.model.WordEntry
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -61,6 +64,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private val _timerFinished = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /** Süre dolduğu anda bir kez akar. Arayüz ses ve flaş için dinler. */
+    val timerFinished: SharedFlow<Unit> = _timerFinished.asSharedFlow()
 
     private var timerJob: Job? = null
     private var nextRoundId = 1L
@@ -257,26 +265,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun closeTimerPanel() = _state.update { it.copy(timerPanelOpen = false) }
 
     fun startTimer(seconds: Int) {
-        timerJob?.cancel()
         _state.update { it.copy(timer = TimerState(seconds, seconds, running = true)) }
-        timerJob = viewModelScope.launch {
-            while (true) {
-                delay(1000)
-                var done = false
-                _state.update { s ->
-                    val left = (s.timer.remainingSeconds - 1).coerceAtLeast(0)
-                    done = left == 0
-                    s.copy(
-                        timer = s.timer.copy(
-                            remainingSeconds = left,
-                            running = !done,
-                            finished = done,
-                        ),
-                    )
-                }
-                if (done) break
-            }
-        }
+        runCountdown(from = seconds, total = seconds)
     }
 
     fun togglePauseTimer() {
@@ -285,27 +275,35 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             timerJob?.cancel()
             _state.update { it.copy(timer = it.timer.copy(running = false)) }
         } else if (timer.remainingSeconds > 0) {
-            val left = timer.remainingSeconds
-            val total = timer.totalSeconds
-            timerJob?.cancel()
             _state.update { it.copy(timer = it.timer.copy(running = true, finished = false)) }
-            timerJob = viewModelScope.launch {
-                var remaining = left
-                while (remaining > 0) {
-                    delay(1000)
-                    remaining--
-                    val done = remaining == 0
-                    _state.update { s ->
-                        s.copy(
-                            timer = s.timer.copy(
-                                totalSeconds = total,
-                                remainingSeconds = remaining,
-                                running = !done,
-                                finished = done,
-                            ),
-                        )
-                    }
+            runCountdown(from = timer.remainingSeconds, total = timer.totalSeconds)
+        }
+    }
+
+    /**
+     * Geri sayımın tek gövdesi; hem baştan başlatma hem duraklatmadan sürdürme
+     * buraya iner. Süre dolduğunda [timerFinished] tetiklenir ve arayüz
+     * bip sesiyle kırmızı flaşı oradan sürer.
+     */
+    private fun runCountdown(from: Int, total: Int) {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            var remaining = from
+            while (remaining > 0) {
+                delay(1000)
+                remaining--
+                val done = remaining == 0
+                _state.update { s ->
+                    s.copy(
+                        timer = s.timer.copy(
+                            totalSeconds = total,
+                            remainingSeconds = remaining,
+                            running = !done,
+                            finished = done,
+                        ),
+                    )
                 }
+                if (done) _timerFinished.emit(Unit)
             }
         }
     }

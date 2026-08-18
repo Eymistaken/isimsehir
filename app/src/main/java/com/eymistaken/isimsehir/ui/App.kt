@@ -1,12 +1,17 @@
 package com.eymistaken.isimsehir.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -16,14 +21,20 @@ import com.eymistaken.isimsehir.ui.game.GameScreen
 import com.eymistaken.isimsehir.ui.letters.LetterPickerSheet
 import com.eymistaken.isimsehir.ui.rounds.RoundsScreen
 import com.eymistaken.isimsehir.ui.settings.SettingsScreen
+import com.eymistaken.isimsehir.ui.theme.Danger
 import com.eymistaken.isimsehir.ui.theme.Ink
 import com.eymistaken.isimsehir.ui.theme.IsimSehirTheme
 import com.eymistaken.isimsehir.ui.wheel.WheelScreen
-import com.eymistaken.isimsehir.ui.timer.FloatingTimerPill
-import com.eymistaken.isimsehir.ui.timer.TimerPanel
+import com.eymistaken.isimsehir.ui.timer.TimerLayer
+import com.eymistaken.isimsehir.ui.timer.playTimerEndTone
 import com.eymistaken.isimsehir.vm.GameSurface
 import com.eymistaken.isimsehir.vm.GameViewModel
 import com.eymistaken.isimsehir.vm.Tab
+import kotlinx.coroutines.launch
+
+/** Bitiş flaşının en yüksek opaklığı ve sönme süresi. */
+private const val FLASH_PEAK = 0.32f
+private const val FLASH_MILLIS = 420
 
 /**
  * Uygulamanın tek giriş noktası. Sekmeler, katmanlar (harf seçimi,
@@ -32,6 +43,16 @@ import com.eymistaken.isimsehir.vm.Tab
 @Composable
 fun App(vm: GameViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val flash = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        val scope = this
+        vm.timerFinished.collect {
+            scope.launch { playTimerEndTone() }
+            flash.snapTo(FLASH_PEAK)
+            flash.animateTo(0f, tween(FLASH_MILLIS, easing = LinearEasing))
+        }
+    }
 
     IsimSehirTheme(accent = state.settings.accent.color) {
         Box(
@@ -72,10 +93,16 @@ fun App(vm: GameViewModel = viewModel()) {
                 BottomNav(active = state.tab, onSelect = vm::selectTab)
             }
 
-            // Yüzen zamanlayıcı yalnızca ayarı açıkken ve panel kapalıyken görünür.
-            if (state.settings.floatingTimer && !state.timerPanelOpen) {
-                FloatingTimerPill(timer = state.timer, onOpen = vm::openTimerPanel)
-            }
+            TimerLayer(
+                timer = state.timer,
+                floatingEnabled = state.settings.floatingTimer,
+                panelOpen = state.timerPanelOpen,
+                onOpen = vm::openTimerPanel,
+                onDismiss = vm::closeTimerPanel,
+                onStart = vm::startTimer,
+                onTogglePause = vm::togglePauseTimer,
+                onCancel = vm::cancelTimer,
+            )
 
             if (state.letterPickerOpen) {
                 LetterPickerSheet(
@@ -85,13 +112,13 @@ fun App(vm: GameViewModel = viewModel()) {
                 )
             }
 
-            if (state.timerPanelOpen) {
-                TimerPanel(
-                    timer = state.timer,
-                    onStart = vm::startTimer,
-                    onTogglePause = vm::togglePauseTimer,
-                    onCancel = vm::cancelTimer,
-                    onDismiss = vm::closeTimerPanel,
+            // Süre dolduğunda ekran kısa bir an kırmızıya çalar. Dokunmayı
+            // engellememesi için yalnızca boyanan, tıklama almayan bir katman.
+            if (flash.value > 0f) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Danger.copy(alpha = flash.value)),
                 )
             }
 
