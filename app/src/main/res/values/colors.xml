@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Yalnızca tema/manifest tarafından okunanlar. Compose tarafındaki
+         palet Color.kt içinde; ikisi elle eşlenik tutuluyor. -->
+    <color name="ink">#FF0F1620</color>
+    <color name="ic_launcher_background">#FF0F1620</color>
+</resources>
