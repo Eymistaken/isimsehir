@@ -27,7 +27,10 @@ Vurgu rengi Ayarlar'dan dört seçenek arasında değiştirilebilir.
 Zamanlayıcı iki biçimde çalışır: ekranda sürüklenebilir yüzen bir hap
 (varsayılan) ya da üst bardaki süre göstergesi. İkisi de aynı paneli açar.
 
-Bir turu silmek için Turlar ekranındaki kartı basılı tutun.
+Bir turu silmek için Turlar ekranındaki kartı basılı tutun. Silinen turun
+harfi de serbest kalır — çarkta ve harf seçiminde yeniden oynanabilir hâle
+gelir. Oynanmış harfler ayrı bir liste olarak tutulmuyor, turlardan
+türetiliyor.
 
 ## Titreşim
 

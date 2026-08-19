@@ -46,7 +46,6 @@ data class UiState(
     val settings: Settings = Settings(),
     val activeRound: ActiveRound? = null,
     val completedRounds: List<CompletedRound> = emptyList(),
-    val usedLetters: List<Char> = emptyList(),
     val roundCounter: Int = 0,
     val timer: TimerState = TimerState(),
     val spinning: Boolean = false,
@@ -57,6 +56,16 @@ data class UiState(
     val dialog: DialogRequest? = null,
 ) {
     val grandTotal: Int get() = completedRounds.sumOf { it.total }
+
+    /**
+     * Oynanmış harfler turlardan türetiliyor, ayrıca tutulmuyor: bir tur
+     * silindiğinde harfi de kendiliğinden serbest kalsın diye. Sıra eskiden
+     * yeniye; `completedRounds` en yeni başta tutuluyor.
+     */
+    val usedLetters: List<Char>
+        get() = (completedRounds.asReversed().map { it.letter } + listOfNotNull(activeRound?.letter))
+            .distinct()
+
     val remainingLetters: List<Char> get() = ALPHABET.filter { it !in usedLetters }
 }
 
@@ -171,7 +180,6 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
                 surface = GameSurface.Round,
                 letterPickerOpen = false,
                 roundCounter = index,
-                usedLetters = if (letter in s.usedLetters) s.usedLetters else s.usedLetters + letter,
                 activeRound = ActiveRound(
                     index = index,
                     letter = letter,
