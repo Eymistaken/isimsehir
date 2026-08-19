@@ -24,7 +24,7 @@ data class Settings(
     val floatingTimer: Boolean = true,
     val durationSeconds: Int = 60,
     val haptics: Boolean = true,
-    val hapticStrength: HapticStrength = HapticStrength.Light,
+    val hapticStrength: HapticStrength = HapticStrength.Medium,
     val timerEndVibration: TimerEndVibration = TimerEndVibration.Medium,
 )
 

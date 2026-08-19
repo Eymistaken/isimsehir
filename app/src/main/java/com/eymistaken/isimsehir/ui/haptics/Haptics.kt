@@ -52,17 +52,19 @@ enum class Haptic {
 }
 
 /**
- * Arayüz titreşimleri üç kademeli bir yoldan çalınıyor; hedef "hafif ama tok":
+ * Arayüz titreşimleri **hazır efektlerle** çalınıyor: EFFECT_TICK, EFFECT_CLICK,
+ * EFFECT_HEAVY_CLICK, EFFECT_DOUBLE_CLICK. Bunlar üreticinin kendi motoru için
+ * kalibre ettiği darbelerdir; cihazda denenip seçildiler. Şiddetleri
+ * ayarlanamaz — ölçeklenebilen primitive'ler ve elle yazılmış dalgalar denendi
+ * ama bu motorda hazır efektlerin tokluğunu tutturamadılar.
  *
- *  1. **Primitive'ler** (Android 11+, donanım destekliyorsa). CLICK, TICK,
- *     LOW_TICK, THUD üreticinin motor için ayarladığı hazır darbelerdir: keskin
- *     atak, hızlı sönüm. `scale` ile şiddetleri düşürülünce hafifler ama
- *     tokluğunu kaybetmez. Tercih edilen yol bu.
- *  2. **Zarflı dalga** (genlik kontrolü varsa). Düz ve alçak bir dalga motoru
- *     oturtamadan bırakıp pürüzlü hissettirdiği için darbeler tepe + kısa
- *     sönüm biçiminde yazıldı.
- *  3. **Sistem sabitleri.** Genliği hiç ayarlayamayan cihazlarda elde kalan
- *     en yumuşak seçenekler.
+ * Şiddet ayarı bu yüzden bir ölçek değil, merdivende kaydırma:
+ * TICK → CLICK → HEAVY_CLICK. Her etkileşimin merdivende bir basamağı var,
+ * Hafif bir aşağı iter, Güçlü bir yukarı.
+ *
+ * Hazır efektlerin olmadığı sürümlerde (Android 9 ve altı) tepe + kısa sönüm
+ * biçiminde yazılmış kendi dalgalarımız, genlik kontrolü de yoksa sistemin
+ * yumuşak sabitleri devreye giriyor.
  *
  * Süre bitişi ayrı kanal: kendi gücü var ve [enabled] anahtarından bağımsız,
  * çünkü telefon cepteyken hissedilmesi gereken tek an o.
@@ -78,14 +80,6 @@ class Haptics(
 ) {
     private val canShapeAmplitude: Boolean =
         vibrator?.let { runCatching { it.hasAmplitudeControl() }.getOrDefault(false) } ?: false
-
-    /** İstenen primitive'in bu cihazdaki karşılığı; bir kez çözülüp saklanıyor. */
-    private val primitiveSupport: Map<Int, Int> =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && vibrator != null) {
-            resolvePrimitives(vibrator)
-        } else {
-            emptyMap()
-        }
 
     fun perform(kind: Haptic?) {
         if (!enabled || kind == null) return
@@ -106,14 +100,18 @@ class Haptics(
     private fun play(kind: Haptic, strength: HapticStrength) {
         if (!systemHapticsEnabled) return
         val vibrator = vibrator
-        val effect = when {
-            vibrator == null -> null
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && primitiveSupport.isNotEmpty() ->
-                primitiveEffect(kind, strength)
-            else -> null
-        } ?: if (vibrator != null && canShapeAmplitude) waveformEffect(kind, strength) else null
+        if (vibrator == null) {
+            view?.performHapticFeedback(fallbackConstant(kind))
+            return
+        }
 
-        if (vibrator != null && effect != null) {
+        val effect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            predefinedEffect(kind, strength)
+        } else {
+            null
+        } ?: if (canShapeAmplitude) waveformEffect(kind, strength) else null
+
+        if (effect != null) {
             runCatching { vibrateTouch(vibrator, effect) }
         } else {
             view?.performHapticFeedback(fallbackConstant(kind))
@@ -121,38 +119,27 @@ class Haptics(
     }
 
     /**
-     * Primitive dizisi: hangi darbe, ne şiddette (0-1, "Orta" referansı) ve
-     * öncekinden kaç ms sonra. Onay ve ret tek darbe değil — güçle değil
-     * biçimle ayrışsınlar diye iki parçalı.
+     * Etkileşimin merdivendeki basamağı: 0 = TICK, 1 = CLICK, 2 = HEAVY_CLICK.
+     * Şiddet ayarı bu basamağı bir aşağı ya da bir yukarı kaydırıyor.
      */
-    @RequiresApi(Build.VERSION_CODES.R)
-    private fun primitiveSteps(kind: Haptic): List<Triple<Int, Float, Int>> = when (kind) {
-        Haptic.Tick -> listOf(Triple(LOW_TICK, 0.90f, 0))
-        Haptic.Select -> listOf(Triple(TICK, 0.80f, 0))
-        Haptic.GestureStart -> listOf(Triple(TICK, 0.65f, 0))
-        Haptic.ToggleOff -> listOf(Triple(TICK, 0.85f, 0))
-        Haptic.Tap -> listOf(Triple(CLICK, 0.65f, 0))
-        Haptic.ToggleOn -> listOf(Triple(CLICK, 0.75f, 0))
-        Haptic.LongPress -> listOf(Triple(THUD, 0.85f, 0))
-        Haptic.Confirm -> listOf(Triple(CLICK, 0.55f, 0), Triple(THUD, 0.80f, 55))
-        Haptic.Reject -> listOf(Triple(CLICK, 0.75f, 0), Triple(CLICK, 0.75f, 45))
+    private fun ladderStep(kind: Haptic): Int = when (kind) {
+        Haptic.Tick, Haptic.GestureStart -> 0
+        Haptic.Select, Haptic.ToggleOff -> 1
+        Haptic.Tap, Haptic.ToggleOn, Haptic.LongPress, Haptic.Reject -> 2
+        // Onay merdivende değil: çift darbe, tek başına "oldu" diyor.
+        Haptic.Confirm -> -1
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
-    private fun primitiveEffect(kind: Haptic, strength: HapticStrength): VibrationEffect? =
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun predefinedEffect(kind: Haptic, strength: HapticStrength): VibrationEffect? =
         runCatching {
-            val composition = VibrationEffect.startComposition()
-            var added = false
-            primitiveSteps(kind).forEach { (wanted, scale, delay) ->
-                val primitive = primitiveSupport[wanted] ?: return@forEach
-                composition.addPrimitive(
-                    primitive,
-                    (scale * strength.factor).coerceIn(0.05f, 1f),
-                    delay,
-                )
-                added = true
+            val step = ladderStep(kind)
+            val id = if (step < 0) {
+                VibrationEffect.EFFECT_DOUBLE_CLICK
+            } else {
+                EFFECT_LADDER[(step + strength.ladderShift).coerceIn(EFFECT_LADDER.indices)]
             }
-            if (added) composition.compose() else null
+            VibrationEffect.createPredefined(id)
         }.getOrNull()
 
     /**
@@ -262,31 +249,12 @@ class Haptics(
     companion object {
         private const val NO_REPEAT = -1
 
-        // VibrationEffect.Composition.PRIMITIVE_* değerleri. Sabitler API
-        // seviyesine bağlı olduğu için sayı olarak yazıldı; LOW_TICK ve THUD
-        // Android 12'de geldi ve her cihazda desteklenmiyor — aşağıdaki
-        // zincirle desteklenen en yakınına düşülüyor.
-        private const val CLICK = 1
-        private const val THUD = 2
-        private const val TICK = 7
-        private const val LOW_TICK = 8
-
-        /** İstenen primitive yoksa en yakın desteklenene düş. */
-        private val PRIMITIVE_CHAINS: Map<Int, IntArray> = mapOf(
-            LOW_TICK to intArrayOf(LOW_TICK, TICK, CLICK),
-            TICK to intArrayOf(TICK, CLICK),
-            CLICK to intArrayOf(CLICK),
-            THUD to intArrayOf(THUD, CLICK),
+        /** Hafiften ağıra hazır efektler; şiddet ayarı bu dizide kaydırıyor. */
+        private val EFFECT_LADDER = intArrayOf(
+            VibrationEffect.EFFECT_TICK,
+            VibrationEffect.EFFECT_CLICK,
+            VibrationEffect.EFFECT_HEAVY_CLICK,
         )
-
-        @RequiresApi(Build.VERSION_CODES.R)
-        private fun resolvePrimitives(vibrator: Vibrator): Map<Int, Int> =
-            runCatching {
-                PRIMITIVE_CHAINS.mapNotNull { (wanted, chain) ->
-                    chain.firstOrNull { vibrator.areAllPrimitivesSupported(it) }
-                        ?.let { wanted to it }
-                }.toMap()
-            }.getOrDefault(emptyMap())
 
         private val TOUCH_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)

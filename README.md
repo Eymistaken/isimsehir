@@ -34,17 +34,21 @@ türetiliyor.
 
 ## Titreşim
 
-Arayüz dokunuşları — buton, chip, harf seçimi, sekme, uzun basış — üç kademeli
-bir yoldan çalar. Öncelik **haptic primitive**'lerde (CLICK, TICK, LOW_TICK,
-THUD): üreticinin motor için ayarladığı hazır darbelerdir, keskin atak ve hızlı
-sönümle "tok" hissederler; `scale` ile şiddetleri düşünce hafifler ama tokluğunu
-kaybetmezler. Primitive desteklenmiyorsa tepe + kısa sönüm biçiminde yazılmış
-kendi dalgalarımız devreye girer — düz ve alçak bir dalga motoru oturtamadan
-bıraktığı için pürüzlü hissettiriyordu, zarf bunu düzeltiyor. Genliği hiç
-ayarlanamayan cihazlarda sistemin en yumuşak sabitlerine düşülür.
+Arayüz dokunuşları — buton, chip, harf seçimi, sekme, uzun basış — **hazır
+efektlerle** çalar: `EFFECT_TICK`, `EFFECT_CLICK`, `EFFECT_HEAVY_CLICK`,
+`EFFECT_DOUBLE_CLICK`. Bunlar üreticinin kendi motoru için kalibre ettiği
+darbeler; cihazda denenip seçildiler. Şiddetleri ayarlanamaz — ölçeklenebilen
+primitive'ler ve elle yazılmış dalgalar da denendi ama tokluğu bunlar kadar
+tutturamadılar.
 
-Ayarlar'daki Hafif / Orta / Güçlü seçimi bu şiddetleri ölçekler; varsayılan
-Hafif.
+Ayarlar'daki Hafif / Orta / Güçlü bu yüzden bir ölçek değil, merdivende
+kaydırma: TICK → CLICK → HEAVY_CLICK. Her etkileşimin bir basamağı var (tık 0,
+seçim 1, buton 2), Hafif bir aşağı iter, Güçlü bir yukarı. Varsayılan Orta —
+yani sıradan buton dokunuşu HEAVY_CLICK. Onay merdivende değil, çift darbe.
+
+Hazır efektlerin olmadığı sürümlerde (Android 9 ve altı) tepe + kısa sönüm
+biçiminde yazılmış kendi dalgalarımız, genlik kontrolü de yoksa sistemin
+yumuşak sabitleri devreye girer.
 
 Çark dönerken işaretçinin altından geçen her harf bir tık verir; tıklar arasında
 en az 55 ms bırakılır, yoksa dönüşün başındaki hız tek bir vızıltıya dönüşür.
