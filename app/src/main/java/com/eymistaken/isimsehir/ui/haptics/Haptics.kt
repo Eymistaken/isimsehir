@@ -333,7 +333,7 @@ fun rememberHaptics(
     }
 }
 
-private fun vibratorOf(context: Context): Vibrator? = runCatching {
+internal fun vibratorOf(context: Context): Vibrator? = runCatching {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         context.getSystemService(VibratorManager::class.java)?.defaultVibrator
     } else {

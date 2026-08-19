@@ -57,6 +57,14 @@ flaşı tamamlıyor. Gücü Ayarlar'dan Yüksek / Orta / Kapalı olarak seçilir
 kapatıp yalnızca süre uyarısını açık bırakmak mümkün. Son üç saniyede her saniye
 tek bir hafif tik gelir.
 
+### Geliştirici bölümü (geçici)
+
+Ayarlar'ın altında bir titreşim laboratuvarı var: cihazın desteklediği bütün
+primitive'ler, hazır efektler ve sistem sabitleri tek tek denenebiliyor,
+primitive şiddeti ile serbest darbenin süre/genliği kaydırıcıyla ayarlanıyor.
+Amaç doğru karakteri elde seçmek. Karar verilince `ui/haptics/HapticLab.kt` ve
+`ui/settings/HapticLabSection.kt` silinip Ayarlar'daki çağrı kaldırılacak.
+
 ## Kalıcılık
 
 Ayarlar (kategoriler, vurgu rengi, zamanlayıcı ve titreşim tercihleri)
@@ -91,6 +99,9 @@ keyPassword=...
 `main` branch'ine her push'ta `.github/workflows/release.yml` çalışır: APK'yı
 derler ve GitHub Releases'e yükler. Elle tetiklemek için Actions sekmesindeki
 "Derle ve yayınla" → *Run workflow*.
+
+Commit mesajında `[dev]` geçiyorsa o sürüm bir deneme sürümü sayılır: sürüm
+adına `-dev` eklenir ve release GitHub'da "ön sürüm" olarak işaretlenir.
 
 Sürüm adı `2.0.<derleme sayısı>` biçiminde üretilir; sayı, iş akışının
 `run_number` değeridir. `versionCode` de aynı sayaçla artar, böylece her

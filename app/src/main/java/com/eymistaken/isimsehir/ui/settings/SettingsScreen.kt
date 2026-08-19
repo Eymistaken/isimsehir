@@ -245,6 +245,12 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(30.dp))
+        HapticLabSection(
+            hapticStrength = hapticStrength,
+            timerEndVibration = timerEndVibration,
+        )
+
+        Spacer(Modifier.height(30.dp))
         Text(
             "Sürüm $versionName · turlar oturum boyunca tutulur, ayarlar kalıcıdır",
             style = AppText.caption,

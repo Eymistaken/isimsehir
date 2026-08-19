@@ -59,10 +59,26 @@ jobs:
           } > keystore.properties
           echo "signed=release" >> "$GITHUB_ENV"
 
+      - name: Sürüm türü
+        id: kind
+        run: |
+          set -eu
+          # Commit mesajında [dev] geçiyorsa bu bir deneme sürümü: sürüm adına
+          # -dev eklenir ve release "ön sürüm" olarak işaretlenir.
+          if git log -1 --pretty=%B | grep -qiF '[dev]'; then
+            echo "suffix=-dev" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "Geliştirici sürümü ([dev])" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "suffix=" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Sürüm numarası
         id: version
         env:
           BUILD_NUMBER: ${{ github.run_number }}
+          VERSION_SUFFIX: ${{ steps.kind.outputs.suffix }}
         run: |
           set -euo pipefail
           chmod +x gradlew
@@ -77,6 +93,7 @@ jobs:
       - name: APK derle
         env:
           BUILD_NUMBER: ${{ github.run_number }}
+          VERSION_SUFFIX: ${{ steps.kind.outputs.suffix }}
         run: ./gradlew --no-daemon assembleRelease
 
       - name: APK'yı adlandır
@@ -95,10 +112,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
           APK: ${{ steps.apk.outputs.path }}
+          PRERELEASE: ${{ steps.kind.outputs.prerelease }}
         run: |
           set -euo pipefail
+          FLAGS=""
+          if [ "$PRERELEASE" = "true" ]; then FLAGS="--prerelease"; fi
           gh release create "v$VERSION" "$APK" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "İsim Şehir v$VERSION" \
-            --generate-notes
+            --generate-notes $FLAGS

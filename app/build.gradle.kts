@@ -23,7 +23,10 @@ val hasReleaseKeystore = keystoreProps.getProperty("storeFile") != null
 // BUILD_NUMBER geçer (run number), yerel derlemede 0 kalır.
 val baseVersionName = "2.0"
 val buildNumber = (System.getenv("BUILD_NUMBER") ?: "0").toIntOrNull() ?: 0
-val appVersionName = if (buildNumber == 0) baseVersionName else "$baseVersionName.$buildNumber"
+// Geliştirici sürümlerinde "-dev" gibi bir ek; iş akışı geçiyor.
+val versionSuffix = System.getenv("VERSION_SUFFIX").orEmpty()
+val appVersionName =
+    if (buildNumber == 0) baseVersionName else "$baseVersionName.$buildNumber$versionSuffix"
 val appVersionCode = 1 + buildNumber
 
 android {
