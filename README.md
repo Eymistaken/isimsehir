@@ -58,6 +58,35 @@ keyAlias=...
 keyPassword=...
 ```
 
+## Otomatik yayın
+
+`main` branch'ine her push'ta `.github/workflows/release.yml` çalışır: APK'yı
+derler ve GitHub Releases'e yükler. Elle tetiklemek için Actions sekmesindeki
+"Derle ve yayınla" → *Run workflow*.
+
+Sürüm adı `2.0.<derleme sayısı>` biçiminde üretilir; sayı, iş akışının
+`run_number` değeridir. `versionCode` de aynı sayaçla artar, böylece her
+release bir öncekinin üzerine kurulabilir. Temel sürümü (`2.0`) yükseltmek
+için `app/build.gradle.kts` içindeki `baseVersionName` değerini değiştirmek
+yeterli. Yerel derlemede sayaç 0 kabul edilir, sürüm sade `2.0` kalır.
+
+### CI'da imzalama
+
+Depoda imza anahtarı yoksa CI, release APK'sını runner'ın debug anahtarıyla
+imzalar. Bu anahtar her çalışmada yeniden üretildiği için imza sürümden
+sürüme değişir — kullanıcı güncellemeyi kurmadan önce eskisini silmek zorunda
+kalır. Sabit imza için depo ayarlarına şu secret'ları ekleyin:
+
+| Secret | Değer |
+|---|---|
+| `KEYSTORE_BASE64` | `base64 -w0 uploader.jks` çıktısı |
+| `KEYSTORE_PASSWORD` | keystore parolası |
+| `KEY_ALIAS` | anahtar takma adı |
+| `KEY_PASSWORD` | anahtar parolası |
+
+`KEYSTORE_BASE64` tanımlıysa iş akışı `keystore.properties` dosyasını kendisi
+oluşturur ve APK gerçek anahtarla imzalanır.
+
 ## İkon
 
 Adaptive icon; hepsi vektör, hiç PNG yok. `background` + `foreground` +

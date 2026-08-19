@@ -19,6 +19,13 @@ val keystoreProps = Properties().apply {
 }
 val hasReleaseKeystore = keystoreProps.getProperty("storeFile") != null
 
+// Sürüm numarası: temel ad + derleme sayacı. GitHub Actions her çalışmada
+// BUILD_NUMBER geçer (run number), yerel derlemede 0 kalır.
+val baseVersionName = "2.0"
+val buildNumber = (System.getenv("BUILD_NUMBER") ?: "0").toIntOrNull() ?: 0
+val appVersionName = if (buildNumber == 0) baseVersionName else "$baseVersionName.$buildNumber"
+val appVersionCode = 1 + buildNumber
+
 android {
     namespace = "com.eymistaken.isimsehir"
     compileSdk = 35
@@ -27,8 +34,8 @@ android {
         applicationId = "com.eymistaken.isimsehir"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "2.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
 
     signingConfigs {
@@ -76,6 +83,12 @@ android {
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
+}
+
+// CI, release etiketini bu görevden okur — sürüm tek yerde tanımlı kalsın diye.
+tasks.register("printVersionName") {
+    val version = appVersionName
+    doLast { println(version) }
 }
 
 dependencies {
