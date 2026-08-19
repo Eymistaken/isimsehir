@@ -51,6 +51,7 @@ fun App(vm: GameViewModel = viewModel()) {
     val flash = remember { Animatable(0f) }
     val haptics = rememberHaptics(
         enabled = state.settings.haptics,
+        strength = state.settings.hapticStrength,
         endStrength = state.settings.timerEndVibration,
     )
 
@@ -112,6 +113,7 @@ fun App(vm: GameViewModel = viewModel()) {
                             floatingTimer = state.settings.floatingTimer,
                             durationSeconds = state.settings.durationSeconds,
                             haptics = state.settings.haptics,
+                            hapticStrength = state.settings.hapticStrength,
                             timerEndVibration = state.settings.timerEndVibration,
                             versionName = BuildConfig.VERSION_NAME,
                             onAddCategory = vm::addCategory,
@@ -120,6 +122,7 @@ fun App(vm: GameViewModel = viewModel()) {
                             onFloatingTimerChange = vm::setFloatingTimer,
                             onDurationChange = vm::setDuration,
                             onHapticsChange = vm::setHaptics,
+                            onHapticStrengthChange = vm::setHapticStrength,
                             onTimerEndVibrationChange = vm::setTimerEndVibration,
                         )
                     }

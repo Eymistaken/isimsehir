@@ -31,12 +31,18 @@ Bir turu silmek için Turlar ekranındaki kartı basılı tutun.
 
 ## Titreşim
 
-Arayüz dokunuşları — buton, chip, harf seçimi, sekme, uzun basış — sistemin
-dokunsal geri bildirim yolunu (`View.performHapticFeedback`) kullanır: izin
-istemez ve cihazın kendi ayarına uyar. Çark dönerken işaretçinin altından geçen
-her harf bir tık verir; tıklar arasında en az 55 ms bırakılır, yoksa dönüşün
-başındaki hız tek bir vızıltıya dönüşür. Tur harfiyle başlamayan bir kelime
-girildiğinde alan sessizce temizlendiği için ayrı bir "reddet" titreşimi var.
+Arayüz dokunuşları — buton, chip, harf seçimi, sekme, uzun basış — kendi
+titreşim kalıplarımızla çalar. `performHapticFeedback` sabitleri (KEYBOARD_TAP,
+LONG_PRESS, CONFIRM) üreticinin kalibrasyonuna bağlı ve bir oyun için fazla sert
+kaçıyordu; genlik ve süreyi kendimiz verince gücü gerçekten ayarlanabiliyor.
+Ayarlar'daki Hafif / Orta / Güçlü seçimi bu genlikleri ölçekler, varsayılan
+Hafif. Genlik kontrolü olmayan cihazlarda sistemin en yumuşak sabitlerine
+düşülür.
+
+Çark dönerken işaretçinin altından geçen her harf bir tık verir; tıklar arasında
+en az 55 ms bırakılır, yoksa dönüşün başındaki hız tek bir vızıltıya dönüşür.
+Tur harfiyle başlamayan bir kelime girildiğinde alan sessizce temizlendiği için
+ayrı bir "reddet" titreşimi var.
 
 Süre bitişi ayrı bir kanal: `VIBRATE` izniyle çalınan bir kalıp, bipi ve kırmızı
 flaşı tamamlıyor. Gücü Ayarlar'dan Yüksek / Orta / Kapalı olarak seçilir

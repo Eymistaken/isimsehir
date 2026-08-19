@@ -9,6 +9,7 @@ import com.eymistaken.isimsehir.model.ALPHABET
 import com.eymistaken.isimsehir.model.AccentColor
 import com.eymistaken.isimsehir.model.ActiveRound
 import com.eymistaken.isimsehir.model.CompletedRound
+import com.eymistaken.isimsehir.model.HapticStrength
 import com.eymistaken.isimsehir.model.RoundPhase
 import com.eymistaken.isimsehir.model.TimerEndVibration
 import com.eymistaken.isimsehir.model.TimerState
@@ -357,6 +358,9 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun setDuration(seconds: Int) = viewModelScope.launch { store.setDuration(seconds) }
 
     fun setHaptics(enabled: Boolean) = viewModelScope.launch { store.setHaptics(enabled) }
+
+    fun setHapticStrength(value: HapticStrength) =
+        viewModelScope.launch { store.setHapticStrength(value) }
 
     fun setTimerEndVibration(value: TimerEndVibration) =
         viewModelScope.launch { store.setTimerEndVibration(value) }

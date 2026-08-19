@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.eymistaken.isimsehir.model.AccentColor
 import com.eymistaken.isimsehir.model.DURATION_PRESETS
+import com.eymistaken.isimsehir.model.HapticStrength
 import com.eymistaken.isimsehir.model.TimerEndVibration
 import com.eymistaken.isimsehir.ui.components.AccentPillButton
 import com.eymistaken.isimsehir.ui.components.Eyebrow
@@ -68,6 +69,7 @@ fun SettingsScreen(
     floatingTimer: Boolean,
     durationSeconds: Int,
     haptics: Boolean,
+    hapticStrength: HapticStrength,
     timerEndVibration: TimerEndVibration,
     versionName: String,
     onAddCategory: (String) -> Unit,
@@ -76,6 +78,7 @@ fun SettingsScreen(
     onFloatingTimerChange: (Boolean) -> Unit,
     onDurationChange: (Int) -> Unit,
     onHapticsChange: (Boolean) -> Unit,
+    onHapticStrengthChange: (HapticStrength) -> Unit,
     onTimerEndVibrationChange: (TimerEndVibration) -> Unit,
 ) {
     var draft by remember { mutableStateOf("") }
@@ -202,6 +205,20 @@ fun SettingsScreen(
                 )
             }
             ToggleSwitch(haptics) { onHapticsChange(!haptics) }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            HapticStrength.entries.forEach { option ->
+                ChoiceChip(
+                    label = option.label,
+                    selected = option == hapticStrength,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    onHapticStrengthChange(option)
+                    hapticsEngine.previewTouch(option)
+                }
+            }
         }
 
         Spacer(Modifier.height(18.dp))

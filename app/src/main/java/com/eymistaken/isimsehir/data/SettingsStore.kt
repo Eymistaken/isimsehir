@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.eymistaken.isimsehir.model.AccentColor
 import com.eymistaken.isimsehir.model.DEFAULT_CATEGORIES
+import com.eymistaken.isimsehir.model.HapticStrength
 import com.eymistaken.isimsehir.model.TimerEndVibration
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -23,6 +24,7 @@ data class Settings(
     val floatingTimer: Boolean = true,
     val durationSeconds: Int = 60,
     val haptics: Boolean = true,
+    val hapticStrength: HapticStrength = HapticStrength.Light,
     val timerEndVibration: TimerEndVibration = TimerEndVibration.Medium,
 )
 
@@ -34,6 +36,7 @@ class SettingsStore(private val context: Context) {
         val FLOATING_TIMER = booleanPreferencesKey("floating_timer")
         val DURATION = intPreferencesKey("duration_seconds")
         val HAPTICS = booleanPreferencesKey("haptics")
+        val HAPTIC_STRENGTH = stringPreferencesKey("haptic_strength")
         val TIMER_END_VIBRATION = stringPreferencesKey("timer_end_vibration")
     }
 
@@ -47,6 +50,7 @@ class SettingsStore(private val context: Context) {
             floatingTimer = prefs[Keys.FLOATING_TIMER] ?: true,
             durationSeconds = prefs[Keys.DURATION] ?: 60,
             haptics = prefs[Keys.HAPTICS] ?: true,
+            hapticStrength = HapticStrength.fromKey(prefs[Keys.HAPTIC_STRENGTH]),
             timerEndVibration = TimerEndVibration.fromKey(prefs[Keys.TIMER_END_VIBRATION]),
         )
     }
@@ -69,6 +73,10 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setHaptics(enabled: Boolean) {
         context.dataStore.edit { it[Keys.HAPTICS] = enabled }
+    }
+
+    suspend fun setHapticStrength(value: HapticStrength) {
+        context.dataStore.edit { it[Keys.HAPTIC_STRENGTH] = value.key }
     }
 
     suspend fun setTimerEndVibration(value: TimerEndVibration) {
