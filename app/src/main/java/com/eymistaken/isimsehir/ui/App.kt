@@ -18,6 +18,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.eymistaken.isimsehir.BuildConfig
 import com.eymistaken.isimsehir.ui.game.EmptyGameState
 import com.eymistaken.isimsehir.ui.game.GameScreen
+import com.eymistaken.isimsehir.ui.haptics.Haptic
+import com.eymistaken.isimsehir.ui.haptics.rememberHaptics
 import com.eymistaken.isimsehir.ui.letters.LetterPickerSheet
 import com.eymistaken.isimsehir.ui.rounds.RoundsScreen
 import com.eymistaken.isimsehir.ui.settings.SettingsScreen
@@ -36,6 +38,9 @@ import kotlinx.coroutines.launch
 private const val FLASH_PEAK = 0.32f
 private const val FLASH_MILLIS = 420
 
+/** Geri sayımın son kaç saniyesinde tik verileceği. */
+private const val COUNTDOWN_TICK_FROM = 3
+
 /**
  * Uygulamanın tek giriş noktası. Sekmeler, katmanlar (harf seçimi,
  * zamanlayıcı paneli, onay kutusu) ve yüzen zamanlayıcı burada üst üste binir.
@@ -44,17 +49,43 @@ private const val FLASH_MILLIS = 420
 fun App(vm: GameViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val flash = remember { Animatable(0f) }
+    val haptics = rememberHaptics(
+        enabled = state.settings.haptics,
+        endStrength = state.settings.timerEndVibration,
+    )
 
-    LaunchedEffect(Unit) {
+    // Süre bitişi üç kanaldan birden duyuruluyor: bip, kırmızı flaş, titreşim.
+    LaunchedEffect(haptics) {
         val scope = this
         vm.timerFinished.collect {
+            haptics.timerEnd()
             scope.launch { playTimerEndTone() }
             flash.snapTo(FLASH_PEAK)
             flash.animateTo(0f, tween(FLASH_MILLIS, easing = LinearEasing))
         }
     }
 
-    IsimSehirTheme(accent = state.settings.accent.color) {
+    // Tur harfiyle başlamayan giriş sessizce siliniyor; tek uyarı bu.
+    LaunchedEffect(haptics) {
+        vm.wordRejected.collect { haptics.perform(Haptic.Reject) }
+    }
+
+    // Son üç saniye: bitişteki güçlü titreşime hazırlayan hafif tikler.
+    val remainingSeconds = state.timer.remainingSeconds
+    val timerRunning = state.timer.running
+    LaunchedEffect(remainingSeconds, timerRunning, haptics) {
+        if (timerRunning && remainingSeconds in 1..COUNTDOWN_TICK_FROM) {
+            haptics.perform(Haptic.Tick)
+        }
+    }
+
+    // Tur açılışının tek noktası: çark, elle seçim ve onaylı tekrar hepsi burada.
+    val roundIndex = state.activeRound?.index
+    LaunchedEffect(roundIndex, haptics) {
+        if (roundIndex != null) haptics.perform(Haptic.Confirm)
+    }
+
+    IsimSehirTheme(accent = state.settings.accent.color, haptics = haptics) {
         Box(
             Modifier
                 .fillMaxSize()
@@ -80,12 +111,16 @@ fun App(vm: GameViewModel = viewModel()) {
                             accent = state.settings.accent,
                             floatingTimer = state.settings.floatingTimer,
                             durationSeconds = state.settings.durationSeconds,
+                            haptics = state.settings.haptics,
+                            timerEndVibration = state.settings.timerEndVibration,
                             versionName = BuildConfig.VERSION_NAME,
                             onAddCategory = vm::addCategory,
                             onRemoveCategory = vm::removeCategory,
                             onAccentChange = vm::setAccent,
                             onFloatingTimerChange = vm::setFloatingTimer,
                             onDurationChange = vm::setDuration,
+                            onHapticsChange = vm::setHaptics,
+                            onTimerEndVibrationChange = vm::setTimerEndVibration,
                         )
                     }
                 }

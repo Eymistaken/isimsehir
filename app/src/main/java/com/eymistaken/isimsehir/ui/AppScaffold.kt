@@ -28,6 +28,7 @@ import com.eymistaken.isimsehir.R
 import com.eymistaken.isimsehir.ui.components.AccentPillButton
 import com.eymistaken.isimsehir.ui.components.OutlinePillButton
 import com.eymistaken.isimsehir.ui.components.tapNoRipple
+import com.eymistaken.isimsehir.ui.haptics.Haptic
 import com.eymistaken.isimsehir.ui.theme.AppText
 import com.eymistaken.isimsehir.ui.theme.Cream
 import com.eymistaken.isimsehir.ui.theme.Ink
@@ -83,7 +84,7 @@ private fun NavItem(
         modifier
             .height(56.dp)
             .clip(RoundedCornerShape(12.dp))
-            .tapNoRipple { onSelect(tab) },
+            .tapNoRipple(haptic = if (tab == active) null else Haptic.Select) { onSelect(tab) },
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -129,7 +130,7 @@ fun ConfirmDialog(request: DialogRequest, onConfirm: () -> Unit, onDismiss: () -
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
                 .background(Cream)
-                .tapNoRipple {}
+                .tapNoRipple(haptic = null) {}
                 .padding(24.dp),
         ) {
             Text(request.title, style = AppText.sheetTitle, color = Ink)
@@ -156,6 +157,7 @@ fun ConfirmDialog(request: DialogRequest, onConfirm: () -> Unit, onDismiss: () -
                     fontSize = 13,
                     tracking = 0.12,
                     modifier = Modifier.weight(1f),
+                    haptic = Haptic.Confirm,
                     onClick = onConfirm,
                 )
             }

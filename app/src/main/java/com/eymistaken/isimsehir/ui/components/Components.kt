@@ -37,6 +37,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.eymistaken.isimsehir.R
+import com.eymistaken.isimsehir.ui.haptics.Haptic
+import com.eymistaken.isimsehir.ui.haptics.LocalHaptics
 import com.eymistaken.isimsehir.ui.theme.AppText
 import com.eymistaken.isimsehir.ui.theme.Cream
 import com.eymistaken.isimsehir.ui.theme.Danger
@@ -49,16 +51,29 @@ import com.eymistaken.isimsehir.ui.theme.OnInk60
 import com.eymistaken.isimsehir.ui.theme.OnInk80
 import kotlinx.coroutines.launch
 
-/** Tıklamayı ripple'sız yapar — tasarımda hiçbir yerde Material dalgası yok. */
+/**
+ * Tıklamayı ripple'sız yapar — tasarımda hiçbir yerde Material dalgası yok.
+ *
+ * Uygulamadaki dokunuşların neredeyse tamamı buradan geçtiği için titreşim de
+ * burada veriliyor. [haptic] null verilirse titreşim olmaz; dokunmayı yutan
+ * ("arkadaki katmana geçmesin") kutular bunu kullanır.
+ */
 @Composable
-fun Modifier.tapNoRipple(enabled: Boolean = true, onClick: () -> Unit): Modifier {
+fun Modifier.tapNoRipple(
+    enabled: Boolean = true,
+    haptic: Haptic? = Haptic.Tap,
+    onClick: () -> Unit,
+): Modifier {
     val interaction = remember { MutableInteractionSource() }
+    val haptics = LocalHaptics.current
     return this.clickable(
         interactionSource = interaction,
         indication = null,
         enabled = enabled,
-        onClick = onClick,
-    )
+    ) {
+        haptics.perform(haptic)
+        onClick()
+    }
 }
 
 /** Dar kesim, büyük harfli, harf aralığı açık etiket. */
@@ -102,6 +117,7 @@ fun AccentPillButton(
     height: Dp = 56.dp,
     fontSize: Int = 15,
     tracking: Double = 0.14,
+    haptic: Haptic? = Haptic.Tap,
     onClick: () -> Unit,
 ) {
     val accent = LocalAccent.current
@@ -110,7 +126,7 @@ fun AccentPillButton(
             .height(height)
             .clip(RoundedCornerShape(percent = 50))
             .background(if (enabled) accent else accent.copy(alpha = 0.35f))
-            .tapNoRipple(enabled, onClick),
+            .tapNoRipple(enabled = enabled, haptic = haptic, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -165,6 +181,7 @@ fun HoldToFinishButton(
     val progress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val shape = RoundedCornerShape(percent = 50)
+    val haptics = LocalHaptics.current
 
     Box(
         modifier
@@ -174,10 +191,13 @@ fun HoldToFinishButton(
             .pointerInput(holdMillis) {
                 detectTapGestures(
                     onPress = {
+                        // Parmak değdiği an jestin başladığı hissedilsin.
+                        haptics.perform(Haptic.GestureStart)
                         // Dolgu tamamlandığı anda tur biter; parmağın kalkması beklenmez.
                         val fill = scope.launch {
                             progress.animateTo(1f, tween(holdMillis, easing = LinearEasing))
                             progress.snapTo(0f)
+                            haptics.perform(Haptic.Confirm)
                             onComplete()
                         }
                         tryAwaitRelease()
@@ -234,7 +254,7 @@ fun ScoreChip(
             .clip(shape)
             .background(fill)
             .border(1.5.dp, border, shape)
-            .tapNoRipple(enabled, onClick),
+            .tapNoRipple(enabled = enabled, haptic = Haptic.Select, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(value.toString(), style = AppText.chip, color = textColor)
@@ -283,7 +303,10 @@ fun ToggleSwitch(checked: Boolean, onToggle: () -> Unit) {
             .size(width = 52.dp, height = 30.dp)
             .clip(RoundedCornerShape(percent = 50))
             .background(if (checked) accent else Cream.copy(alpha = 0.14f))
-            .tapNoRipple(onClick = onToggle),
+            .tapNoRipple(
+                haptic = if (checked) Haptic.ToggleOff else Haptic.ToggleOn,
+                onClick = onToggle,
+            ),
     ) {
         Box(
             Modifier

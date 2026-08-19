@@ -38,6 +38,8 @@ import com.eymistaken.isimsehir.ui.components.Eyebrow
 import com.eymistaken.isimsehir.ui.components.FlowRowSimple
 import com.eymistaken.isimsehir.ui.components.OutlinePillButton
 import com.eymistaken.isimsehir.ui.components.tapNoRipple
+import com.eymistaken.isimsehir.ui.haptics.Haptic
+import com.eymistaken.isimsehir.ui.haptics.LocalHaptics
 import com.eymistaken.isimsehir.ui.theme.AppText
 import com.eymistaken.isimsehir.ui.theme.Cream
 import com.eymistaken.isimsehir.ui.theme.Ink
@@ -59,6 +61,13 @@ private const val SPIN_TURNS = 5
 private const val SPIN_MILLIS = 4000
 
 /**
+ * İki tıkırtı arasındaki en kısa süre. Çark başlangıçta harf başına ~13 ms'ye
+ * kadar iniyor; kısıt olmasa tek bir vızıltıya dönüşürdü. Bu değerle dönüş
+ * yoğun başlar, yavaşladıkça harfler tek tek hissedilir.
+ */
+private const val MIN_TICK_MILLIS = 55L
+
+/**
  * Çark ekranı. Döndürme, web sürümündeki mantığın aynısı: hedef harf önce
  * seçilir ([spinTarget]), çark 5 tam tur + hedef açı döner, animasyon bitince
  * [onSpinFinished] turu açar.
@@ -72,6 +81,7 @@ fun WheelScreen(
     onPickManually: () -> Unit,
 ) {
     val accent = LocalAccent.current
+    val haptics = LocalHaptics.current
     val rotation = remember { Animatable(0f) }
     val remaining = ALPHABET.count { it !in usedLetters }
 
@@ -84,10 +94,24 @@ fun WheelScreen(
         val landing = SPIN_TURNS * 360f + (360f - index * step) +
             (Random.nextFloat() - 0.5f) * step
         rotation.snapTo(rotation.value % 360f)
+
+        // İşaretçinin altından geçen her harf bir tık; çark gibi hissetsin.
+        var nextTickAt = rotation.value + step
+        var lastTickTime = 0L
         rotation.animateTo(
             targetValue = rotation.value + landing,
             animationSpec = tween(SPIN_MILLIS, easing = FastOutSlowInEasing),
-        )
+        ) {
+            if (value >= nextTickAt) {
+                // Kaç harf atlandıysa atlansın, sıradaki sınır hep önümüzde kalsın.
+                nextTickAt += step * (((value - nextTickAt) / step).toInt() + 1)
+                val now = System.currentTimeMillis()
+                if (now - lastTickTime >= MIN_TICK_MILLIS) {
+                    lastTickTime = now
+                    haptics.perform(Haptic.Tick)
+                }
+            }
+        }
         onSpinFinished()
     }
 
@@ -148,7 +172,11 @@ fun WheelScreen(
                     .size(132.dp)
                     .clip(RoundedCornerShape(percent = 50))
                     .background(Cream)
-                    .tapNoRipple(enabled = spinTarget == null, onClick = onSpin),
+                    .tapNoRipple(
+                        enabled = spinTarget == null,
+                        haptic = Haptic.Confirm,
+                        onClick = onSpin,
+                    ),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

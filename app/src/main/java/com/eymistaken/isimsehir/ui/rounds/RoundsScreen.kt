@@ -25,6 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.eymistaken.isimsehir.model.CompletedRound
 import com.eymistaken.isimsehir.ui.components.Eyebrow
+import com.eymistaken.isimsehir.ui.haptics.Haptic
+import com.eymistaken.isimsehir.ui.haptics.LocalHaptics
 import com.eymistaken.isimsehir.ui.theme.AppText
 import com.eymistaken.isimsehir.ui.theme.Cream
 import com.eymistaken.isimsehir.ui.theme.Ink
@@ -92,13 +94,19 @@ fun RoundsScreen(
 @Composable
 private fun RoundCard(round: CompletedRound, onLongPress: () -> Unit) {
     val accent = LocalAccent.current
+    val haptics = LocalHaptics.current
     Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(Panel)
-            .pointerInput(round.id) {
-                detectTapGestures(onLongPress = { onLongPress() })
+            .pointerInput(round.id, haptics) {
+                detectTapGestures(
+                    onLongPress = {
+                        haptics.perform(Haptic.LongPress)
+                        onLongPress()
+                    },
+                )
             }
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

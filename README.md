@@ -22,17 +22,32 @@ Vurgu rengi Ayarlar'dan dört seçenek arasında değiştirilebilir.
 | Çark | Harfi rastgele seçer; kullanılmamış harfler arasından |
 | Harf seçimi | Alfabeden elle seçim; oynanmış harfler soluk |
 | Turlar | Bu oturumda kapanan turlar ve genel toplam |
-| Ayarlar | Kategoriler, zamanlayıcı, vurgu rengi |
+| Ayarlar | Kategoriler, zamanlayıcı, vurgu rengi, titreşim |
 
 Zamanlayıcı iki biçimde çalışır: ekranda sürüklenebilir yüzen bir hap
 (varsayılan) ya da üst bardaki süre göstergesi. İkisi de aynı paneli açar.
 
 Bir turu silmek için Turlar ekranındaki kartı basılı tutun.
 
+## Titreşim
+
+Arayüz dokunuşları — buton, chip, harf seçimi, sekme, uzun basış — sistemin
+dokunsal geri bildirim yolunu (`View.performHapticFeedback`) kullanır: izin
+istemez ve cihazın kendi ayarına uyar. Çark dönerken işaretçinin altından geçen
+her harf bir tık verir; tıklar arasında en az 55 ms bırakılır, yoksa dönüşün
+başındaki hız tek bir vızıltıya dönüşür. Tur harfiyle başlamayan bir kelime
+girildiğinde alan sessizce temizlendiği için ayrı bir "reddet" titreşimi var.
+
+Süre bitişi ayrı bir kanal: `VIBRATE` izniyle çalınan bir kalıp, bipi ve kırmızı
+flaşı tamamlıyor. Gücü Ayarlar'dan Yüksek / Orta / Kapalı olarak seçilir
+(varsayılan Orta) ve genel titreşim anahtarından bağımsız çalışır — dokunuşları
+kapatıp yalnızca süre uyarısını açık bırakmak mümkün. Son üç saniyede her saniye
+tek bir hafif tik gelir.
+
 ## Kalıcılık
 
-Ayarlar (kategoriler, vurgu rengi, zamanlayıcı tercihleri) DataStore ile
-kalıcıdır. Turlar bilinçli olarak oturumluktur — uygulama kapanınca sıfırlanır.
+Ayarlar (kategoriler, vurgu rengi, zamanlayıcı ve titreşim tercihleri)
+DataStore ile kalıcıdır. Turlar bilinçli olarak oturumluktur — uygulama kapanınca sıfırlanır.
 
 ## Derleme
 

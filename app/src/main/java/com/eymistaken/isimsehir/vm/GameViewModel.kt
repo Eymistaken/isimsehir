@@ -10,6 +10,7 @@ import com.eymistaken.isimsehir.model.AccentColor
 import com.eymistaken.isimsehir.model.ActiveRound
 import com.eymistaken.isimsehir.model.CompletedRound
 import com.eymistaken.isimsehir.model.RoundPhase
+import com.eymistaken.isimsehir.model.TimerEndVibration
 import com.eymistaken.isimsehir.model.TimerState
 import com.eymistaken.isimsehir.model.WordEntry
 import kotlinx.coroutines.Job
@@ -67,8 +68,16 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _timerFinished = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
-    /** Süre dolduğu anda bir kez akar. Arayüz ses ve flaş için dinler. */
+    /** Süre dolduğu anda bir kez akar. Arayüz ses, flaş ve titreşim için dinler. */
     val timerFinished: SharedFlow<Unit> = _timerFinished.asSharedFlow()
+
+    private val _wordRejected = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /**
+     * Kelime alanına tur harfiyle başlamayan bir giriş yapıldığında akar.
+     * Alan sessizce temizlendiği için tek geri bildirim titreşim.
+     */
+    val wordRejected: SharedFlow<Unit> = _wordRejected.asSharedFlow()
 
     private var timerJob: Job? = null
     private var nextRoundId = 1L
@@ -178,16 +187,15 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
      * uyuşmuyorsa giriş kabul edilmez (alan temizlenir).
      */
     fun updateWord(categoryIndex: Int, raw: String) {
+        val current = _state.value.activeRound ?: return
+        val required = current.letter.lowercase(TR)
+        val rejected = raw.isNotEmpty() && raw.first().lowercase(TR) != required
+        // Emit update bloğunun dışında: blok çekişme hâlinde yeniden çalışabilir.
+        if (rejected) _wordRejected.tryEmit(Unit)
+        val accepted = if (rejected) "" else raw
+
         _state.update { s ->
             val round = s.activeRound ?: return@update s
-            val required = round.letter.lowercase(TR)
-            val accepted = if (raw.isEmpty()) {
-                raw
-            } else if (raw.first().lowercase(TR) == required) {
-                raw
-            } else {
-                ""
-            }
             s.copy(
                 activeRound = round.copy(
                     entries = round.entries.mapIndexed { i, e ->
@@ -347,6 +355,11 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { store.setFloatingTimer(enabled) }
 
     fun setDuration(seconds: Int) = viewModelScope.launch { store.setDuration(seconds) }
+
+    fun setHaptics(enabled: Boolean) = viewModelScope.launch { store.setHaptics(enabled) }
+
+    fun setTimerEndVibration(value: TimerEndVibration) =
+        viewModelScope.launch { store.setTimerEndVibration(value) }
 
     // ---------------------------------------------------------------- diyalog
 

@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.eymistaken.isimsehir.model.DURATION_PRESETS
 import com.eymistaken.isimsehir.model.TimerState
 import com.eymistaken.isimsehir.ui.components.tapNoRipple
+import com.eymistaken.isimsehir.ui.haptics.Haptic
 import com.eymistaken.isimsehir.ui.theme.AppText
 import com.eymistaken.isimsehir.ui.theme.Cream
 import com.eymistaken.isimsehir.ui.theme.Ink
@@ -122,7 +123,7 @@ fun TimerPanelCard(
         modifier
             .clip(RoundedCornerShape(22.dp))
             .background(Cream)
-            .tapNoRipple {}
+            .tapNoRipple(haptic = null) {}
             .padding(22.dp),
     ) {
         Row(
@@ -203,7 +204,11 @@ fun TimerPanelCard(
             editing -> {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlineCreamButton("Vazgeç", Modifier.weight(1f)) { editing = false }
-                    SolidCreamButton("Başlat", Modifier.weight(1f)) { commitEditing() }
+                    SolidCreamButton(
+                        label = "Başlat",
+                        modifier = Modifier.weight(1f),
+                        haptic = Haptic.Confirm,
+                    ) { commitEditing() }
                 }
                 Spacer(Modifier.height(16.dp))
             }
@@ -235,7 +240,7 @@ fun TimerPanelCard(
                         .height(40.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .border(1.5.dp, Ink.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                        .tapNoRipple {
+                        .tapNoRipple(haptic = Haptic.Select) {
                             editing = false
                             onStart(preset.seconds)
                         },
@@ -282,13 +287,18 @@ private fun TimeField(
 }
 
 @Composable
-private fun SolidCreamButton(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun SolidCreamButton(
+    label: String,
+    modifier: Modifier = Modifier,
+    haptic: Haptic? = Haptic.Tap,
+    onClick: () -> Unit,
+) {
     Box(
         modifier
             .height(46.dp)
             .clip(RoundedCornerShape(percent = 50))
             .background(Ink)
-            .tapNoRipple(onClick = onClick),
+            .tapNoRipple(haptic = haptic, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(label.uppercase(TR), style = AppText.buttonLabel(12, 0.14), color = Cream)

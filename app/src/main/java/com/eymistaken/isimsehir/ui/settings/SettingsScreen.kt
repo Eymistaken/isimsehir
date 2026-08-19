@@ -34,12 +34,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.eymistaken.isimsehir.model.AccentColor
 import com.eymistaken.isimsehir.model.DURATION_PRESETS
+import com.eymistaken.isimsehir.model.TimerEndVibration
 import com.eymistaken.isimsehir.ui.components.AccentPillButton
 import com.eymistaken.isimsehir.ui.components.Eyebrow
 import com.eymistaken.isimsehir.ui.components.FlowRowSimple
 import com.eymistaken.isimsehir.ui.components.SectionRule
 import com.eymistaken.isimsehir.ui.components.ToggleSwitch
 import com.eymistaken.isimsehir.ui.components.tapNoRipple
+import com.eymistaken.isimsehir.ui.haptics.Haptic
+import com.eymistaken.isimsehir.ui.haptics.LocalHaptics
 import com.eymistaken.isimsehir.ui.theme.AppText
 import com.eymistaken.isimsehir.ui.theme.Cream
 import com.eymistaken.isimsehir.ui.theme.Ink
@@ -64,14 +67,19 @@ fun SettingsScreen(
     accent: AccentColor,
     floatingTimer: Boolean,
     durationSeconds: Int,
+    haptics: Boolean,
+    timerEndVibration: TimerEndVibration,
     versionName: String,
     onAddCategory: (String) -> Unit,
     onRemoveCategory: (String) -> Unit,
     onAccentChange: (AccentColor) -> Unit,
     onFloatingTimerChange: (Boolean) -> Unit,
     onDurationChange: (Int) -> Unit,
+    onHapticsChange: (Boolean) -> Unit,
+    onTimerEndVibrationChange: (TimerEndVibration) -> Unit,
 ) {
     var draft by remember { mutableStateOf("") }
+    val hapticsEngine = LocalHaptics.current
 
     Column(
         Modifier
@@ -159,7 +167,7 @@ fun SettingsScreen(
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             DURATION_PRESETS.forEach { preset ->
-                DurationChip(
+                ChoiceChip(
                     label = preset.label,
                     selected = preset.seconds == durationSeconds,
                     modifier = Modifier.weight(1f),
@@ -173,6 +181,49 @@ fun SettingsScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             AccentColor.entries.forEach { option ->
                 Swatch(option, option == accent) { onAccentChange(option) }
+            }
+        }
+
+        Spacer(Modifier.height(30.dp))
+        SectionRule("Titreşim")
+        Spacer(Modifier.height(16.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Dokunsal geri bildirim", style = AppText.body, color = Cream)
+                Text(
+                    "Butonlar, chip'ler ve jestler",
+                    style = AppText.caption,
+                    color = OnInk45,
+                    modifier = Modifier.padding(top = 1.dp),
+                )
+            }
+            ToggleSwitch(haptics) { onHapticsChange(!haptics) }
+        }
+
+        Spacer(Modifier.height(18.dp))
+        Text("Süre bitişi", style = AppText.body, color = Cream)
+        Text(
+            "Dokunsal geri bildirimden bağımsız çalışır",
+            style = AppText.caption,
+            color = OnInk45,
+            modifier = Modifier.padding(top = 1.dp),
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            TimerEndVibration.entries.forEach { option ->
+                ChoiceChip(
+                    label = option.label,
+                    selected = option == timerEndVibration,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    onTimerEndVibrationChange(option)
+                    // Seçmeden önce değil, seçerken hissettir.
+                    hapticsEngine.previewEnd(option)
+                }
             }
         }
 
@@ -202,7 +253,7 @@ private fun CategoryChip(label: String, onRemove: () -> Unit) {
                 .size(18.dp)
                 .clip(RoundedCornerShape(percent = 50))
                 .background(Cream.copy(alpha = 0.10f))
-                .tapNoRipple(onClick = onRemove),
+                .tapNoRipple(haptic = Haptic.Select, onClick = onRemove),
             contentAlignment = Alignment.Center,
         ) {
             Text("×", style = AppText.caption, color = OnInk60)
@@ -211,7 +262,7 @@ private fun CategoryChip(label: String, onRemove: () -> Unit) {
 }
 
 @Composable
-private fun DurationChip(
+private fun ChoiceChip(
     label: String,
     selected: Boolean,
     modifier: Modifier = Modifier,
@@ -225,7 +276,7 @@ private fun DurationChip(
             .clip(shape)
             .background(if (selected) accent else Color.Transparent)
             .border(1.5.dp, if (selected) accent else Cream.copy(alpha = 0.14f), shape)
-            .tapNoRipple(onClick = onClick),
+            .tapNoRipple(haptic = Haptic.Select, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -243,7 +294,7 @@ private fun Swatch(option: AccentColor, selected: Boolean, onClick: () -> Unit) 
             .size(52.dp)
             .clip(RoundedCornerShape(percent = 50))
             .border(2.dp, if (selected) Cream else Color.Transparent, RoundedCornerShape(percent = 50))
-            .tapNoRipple(onClick = onClick),
+            .tapNoRipple(haptic = Haptic.Select, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Box(

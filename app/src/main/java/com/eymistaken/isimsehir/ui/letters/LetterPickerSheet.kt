@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.eymistaken.isimsehir.model.ALPHABET
 import com.eymistaken.isimsehir.ui.components.tapNoRipple
+import com.eymistaken.isimsehir.ui.haptics.Haptic
 import com.eymistaken.isimsehir.ui.theme.AppText
 import com.eymistaken.isimsehir.ui.theme.Cream
 import com.eymistaken.isimsehir.ui.theme.Ink
@@ -56,7 +57,7 @@ fun LetterPickerSheet(
                 .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
                 .background(Cream)
                 // Sayfaya dokunmak arkadaki kapatmayı tetiklemesin.
-                .tapNoRipple {}
+                .tapNoRipple(haptic = null) {}
                 .padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 26.dp),
         ) {
             Row(
@@ -124,7 +125,7 @@ private fun LetterCell(
             .clip(shape)
             .background(if (used) Ink.copy(alpha = 0.06f) else Color.Transparent)
             .border(1.5.dp, if (used) Color.Transparent else OnCream16, shape)
-            .tapNoRipple(onClick = onClick),
+            .tapNoRipple(haptic = Haptic.Select, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(

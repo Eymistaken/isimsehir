@@ -1,0 +1,54 @@
+name: Derleme kontrolü
+
+# main dışındaki dallarda ve pull request'lerde yalnızca derler — release
+# yayınlamaz. Amaç, main'e girmeden önce derlemenin sağlam olduğunu görmek.
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Android SDK bileşenleri
+        run: |
+          # pipefail yok: `yes` boruyu kapatınca SIGPIPE ile ölür, adım hata sanmasın.
+          set -eu
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" > /dev/null
+
+      - name: APK derle
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+
+      - name: APK'yı yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: isimsehir-${{ github.ref_name }}
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
