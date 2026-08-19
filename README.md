@@ -34,21 +34,19 @@ türetiliyor.
 
 ## Titreşim
 
-Arayüz dokunuşları — buton, chip, harf seçimi, sekme, uzun basış — **hazır
-efektlerle** çalar: `EFFECT_TICK`, `EFFECT_CLICK`, `EFFECT_HEAVY_CLICK`,
-`EFFECT_DOUBLE_CLICK`. Bunlar üreticinin kendi motoru için kalibre ettiği
-darbeler; cihazda denenip seçildiler. Şiddetleri ayarlanamaz — ölçeklenebilen
-primitive'ler ve elle yazılmış dalgalar da denendi ama tokluğu bunlar kadar
-tutturamadılar.
+Arayüz dokunuşlarının tamamı — buton, chip, harf seçimi, sekme, uzun basış,
+çark tıkırtısı — **tek bir hazır efekt** çalar. Cihazda denendi: `EFFECT_CLICK`
+bu motorda `EFFECT_HEAVY_CLICK`'ten daha sert ve pürüzlü hissettiriyor,
+HEAVY_CLICK ise tok. Etkileşime göre ayrıştırmak (tık / seçim / onay) kâğıtta
+doğru görünüyordu ama elde sert-yumuşak salınımı yarattı; her yerde aynı darbe
+daha tutarlı çıktı.
 
-Ayarlar'daki Hafif / Orta / Güçlü bu yüzden bir ölçek değil, merdivende
-kaydırma: TICK → CLICK → HEAVY_CLICK. Her etkileşimin bir basamağı var (tık 0,
-seçim 1, buton 2), Hafif bir aşağı iter, Güçlü bir yukarı. Varsayılan Orta —
-yani sıradan buton dokunuşu HEAVY_CLICK. Onay merdivende değil, çift darbe.
+Ayarlar'daki Hafif / Orta / Güçlü hangi efektin çalacağını seçer: CLICK,
+HEAVY_CLICK, DOUBLE_CLICK. Varsayılan Orta.
 
 Hazır efektlerin olmadığı sürümlerde (Android 9 ve altı) tepe + kısa sönüm
-biçiminde yazılmış kendi dalgalarımız, genlik kontrolü de yoksa sistemin
-yumuşak sabitleri devreye girer.
+biçiminde yazılmış kendi dalgamız, genlik kontrolü de yoksa sistemin sabitleri
+devreye girer.
 
 Çark dönerken işaretçinin altından geçen her harf bir tık verir; tıklar arasında
 en az 55 ms bırakılır, yoksa dönüşün başındaki hız tek bir vızıltıya dönüşür.

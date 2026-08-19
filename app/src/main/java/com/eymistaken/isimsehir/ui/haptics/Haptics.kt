@@ -52,22 +52,25 @@ enum class Haptic {
 }
 
 /**
- * Arayüz titreşimleri **hazır efektlerle** çalınıyor: EFFECT_TICK, EFFECT_CLICK,
- * EFFECT_HEAVY_CLICK, EFFECT_DOUBLE_CLICK. Bunlar üreticinin kendi motoru için
- * kalibre ettiği darbelerdir; cihazda denenip seçildiler. Şiddetleri
- * ayarlanamaz — ölçeklenebilen primitive'ler ve elle yazılmış dalgalar denendi
- * ama bu motorda hazır efektlerin tokluğunu tutturamadılar.
+ * Arayüz titreşimlerinin tamamı **tek bir hazır efekt** çalıyor. Cihazda denendi:
+ * EFFECT_CLICK bu motorda EFFECT_HEAVY_CLICK'ten daha sert ve pürüzlü
+ * hissettiriyor, HEAVY_CLICK ise tok. Etkileşime göre ayrıştırmak — tık, seçim,
+ * onay diye — kulağa doğru geliyordu ama elde sert/yumuşak salınımı yarattı;
+ * her yerde aynı darbe daha tutarlı.
  *
- * Şiddet ayarı bu yüzden bir ölçek değil, merdivende kaydırma:
- * TICK → CLICK → HEAVY_CLICK. Her etkileşimin merdivende bir basamağı var,
- * Hafif bir aşağı iter, Güçlü bir yukarı.
+ * [Haptic] türleri yine de duruyor: bir etkileşimin titreşim verip vermediğini
+ * onlar belirliyor (null = sessiz) ve ileride yeniden ayrıştırmak istenirse
+ * çağrı yerlerine dokunmadan yapılabilir.
+ *
+ * Şiddet ayarı hangi efektin çalacağını seçiyor: Hafif CLICK, Orta HEAVY_CLICK,
+ * Güçlü DOUBLE_CLICK.
  *
  * Hazır efektlerin olmadığı sürümlerde (Android 9 ve altı) tepe + kısa sönüm
- * biçiminde yazılmış kendi dalgalarımız, genlik kontrolü de yoksa sistemin
- * yumuşak sabitleri devreye giriyor.
+ * biçiminde yazılmış kendi dalgamız, genlik kontrolü de yoksa sistemin
+ * sabitleri devreye giriyor.
  *
- * Süre bitişi ayrı kanal: kendi gücü var ve [enabled] anahtarından bağımsız,
- * çünkü telefon cepteyken hissedilmesi gereken tek an o.
+ * Süre bitişi ayrı kanal: kendi gücü var, kendi kalıbı var ve [enabled]
+ * anahtarından bağımsız — telefon cepteyken hissedilmesi gereken tek an o.
  */
 class Haptics(
     private val view: View?,
@@ -81,13 +84,14 @@ class Haptics(
     private val canShapeAmplitude: Boolean =
         vibrator?.let { runCatching { it.hasAmplitudeControl() }.getOrDefault(false) } ?: false
 
+    /** [kind] yalnızca "titreşecek mi" sorusunu yanıtlıyor; null ise sessiz. */
     fun perform(kind: Haptic?) {
         if (!enabled || kind == null) return
-        play(kind, strength)
+        play(strength)
     }
 
     /** Ayarlar'da bir güç seçilirken o gücü bir kez örnekler. */
-    fun previewTouch(preview: HapticStrength) = play(Haptic.Tap, preview)
+    fun previewTouch(preview: HapticStrength) = play(preview)
 
     /** Süre dolduğunda; App bunu bip ve kırmızı flaşla birlikte tetikler. */
     fun timerEnd() = playEnd(endStrength)
@@ -97,74 +101,50 @@ class Haptics(
 
     // ------------------------------------------------------------ arayüz
 
-    private fun play(kind: Haptic, strength: HapticStrength) {
+    private fun play(strength: HapticStrength) {
         if (!systemHapticsEnabled) return
         val vibrator = vibrator
         if (vibrator == null) {
-            view?.performHapticFeedback(fallbackConstant(kind))
+            view?.performHapticFeedback(fallbackConstant(strength))
             return
         }
 
         val effect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            predefinedEffect(kind, strength)
+            predefinedEffect(strength)
         } else {
             null
-        } ?: if (canShapeAmplitude) waveformEffect(kind, strength) else null
+        } ?: if (canShapeAmplitude) waveformEffect(strength) else null
 
         if (effect != null) {
             runCatching { vibrateTouch(vibrator, effect) }
         } else {
-            view?.performHapticFeedback(fallbackConstant(kind))
+            view?.performHapticFeedback(fallbackConstant(strength))
         }
     }
 
-    /**
-     * Etkileşimin merdivendeki basamağı: 0 = TICK, 1 = CLICK, 2 = HEAVY_CLICK.
-     * Şiddet ayarı bu basamağı bir aşağı ya da bir yukarı kaydırıyor.
-     */
-    private fun ladderStep(kind: Haptic): Int = when (kind) {
-        Haptic.Tick, Haptic.GestureStart -> 0
-        Haptic.Select, Haptic.ToggleOff -> 1
-        Haptic.Tap, Haptic.ToggleOn, Haptic.LongPress, Haptic.Reject -> 2
-        // Onay merdivende değil: çift darbe, tek başına "oldu" diyor.
-        Haptic.Confirm -> -1
-    }
-
     @RequiresApi(Build.VERSION_CODES.Q)
-    private fun predefinedEffect(kind: Haptic, strength: HapticStrength): VibrationEffect? =
+    private fun predefinedEffect(strength: HapticStrength): VibrationEffect? =
         runCatching {
-            val step = ladderStep(kind)
-            val id = if (step < 0) {
-                VibrationEffect.EFFECT_DOUBLE_CLICK
-            } else {
-                EFFECT_LADDER[(step + strength.ladderShift).coerceIn(EFFECT_LADDER.indices)]
-            }
-            VibrationEffect.createPredefined(id)
+            VibrationEffect.createPredefined(
+                when (strength) {
+                    HapticStrength.Light -> VibrationEffect.EFFECT_CLICK
+                    HapticStrength.Medium -> VibrationEffect.EFFECT_HEAVY_CLICK
+                    HapticStrength.Strong -> VibrationEffect.EFFECT_DOUBLE_CLICK
+                },
+            )
         }.getOrNull()
 
     /**
-     * Milisaniye ve genlik (1-255) çiftleri. Her darbe tepe + kısa sönüm;
-     * genliği 0 olan parçalar iki darbe arasındaki sessizlik. Değerler
-     * "Orta"ya göre yazıldı, seçilen güç bunları ölçekliyor.
+     * Hazır efektlerin olmadığı sürümler için tek darbe: tepe + kısa sönüm.
+     * Düz ve alçak bir blok motoru oturtamadan bıraktığı için pürüzlü
+     * hissettiriyordu; zarf bunu düzeltiyor. Güç ayarı genliği ölçekliyor.
      */
-    private fun waveform(kind: Haptic): Pair<LongArray, IntArray> = when (kind) {
-        Haptic.Tick -> longArrayOf(3, 5) to intArrayOf(120, 45)
-        Haptic.Select -> longArrayOf(3, 6) to intArrayOf(140, 50)
-        Haptic.GestureStart -> longArrayOf(3, 5) to intArrayOf(120, 45)
-        Haptic.ToggleOff -> longArrayOf(3, 6) to intArrayOf(130, 45)
-        Haptic.Tap -> longArrayOf(4, 7) to intArrayOf(160, 60)
-        Haptic.ToggleOn -> longArrayOf(4, 8) to intArrayOf(170, 65)
-        Haptic.LongPress -> longArrayOf(5, 14) to intArrayOf(200, 90)
-        Haptic.Confirm -> longArrayOf(3, 6, 50, 4, 10) to intArrayOf(140, 50, 0, 180, 70)
-        Haptic.Reject -> longArrayOf(4, 7, 40, 4, 7) to intArrayOf(170, 60, 0, 170, 60)
-    }
-
-    private fun waveformEffect(kind: Haptic, strength: HapticStrength): VibrationEffect? =
+    private fun waveformEffect(strength: HapticStrength): VibrationEffect? =
         runCatching {
-            val (timings, amplitudes) = waveform(kind)
+            val timings = longArrayOf(4, 7)
+            val amplitudes = intArrayOf(200, 75)
             val scaled = IntArray(amplitudes.size) { i ->
-                val value = amplitudes[i]
-                if (value == 0) 0 else (value * strength.factor).roundToInt().coerceIn(1, 255)
+                (amplitudes[i] * strength.factor).roundToInt().coerceIn(1, 255)
             }
             VibrationEffect.createWaveform(timings, scaled, NO_REPEAT)
         }.getOrNull()
@@ -182,31 +162,11 @@ class Haptics(
         }
     }
 
-    /** Genliği hiç ayarlayamayan cihazlarda elde kalan en yumuşak sabitler. */
-    private fun fallbackConstant(kind: Haptic): Int = when (kind) {
-        Haptic.LongPress -> HapticFeedbackConstants.LONG_PRESS
-
-        Haptic.Confirm ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                HapticFeedbackConstants.CONFIRM
-            } else {
-                HapticFeedbackConstants.CLOCK_TICK
-            }
-
-        Haptic.Reject ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                HapticFeedbackConstants.REJECT
-            } else {
-                HapticFeedbackConstants.CLOCK_TICK
-            }
-
-        // Geri kalan her şey seçim/tık ailesinden: en hafif olan.
-        else ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                HapticFeedbackConstants.SEGMENT_TICK
-            } else {
-                HapticFeedbackConstants.CLOCK_TICK
-            }
+    /** Genliği hiç ayarlayamayan cihazlarda elde kalan sabitler. */
+    private fun fallbackConstant(strength: HapticStrength): Int = when (strength) {
+        HapticStrength.Light -> HapticFeedbackConstants.CLOCK_TICK
+        HapticStrength.Medium -> HapticFeedbackConstants.KEYBOARD_TAP
+        HapticStrength.Strong -> HapticFeedbackConstants.LONG_PRESS
     }
 
     // ------------------------------------------------------- süre bitişi
@@ -248,13 +208,6 @@ class Haptics(
 
     companion object {
         private const val NO_REPEAT = -1
-
-        /** Hafiften ağıra hazır efektler; şiddet ayarı bu dizide kaydırıyor. */
-        private val EFFECT_LADDER = intArrayOf(
-            VibrationEffect.EFFECT_TICK,
-            VibrationEffect.EFFECT_CLICK,
-            VibrationEffect.EFFECT_HEAVY_CLICK,
-        )
 
         private val TOUCH_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
