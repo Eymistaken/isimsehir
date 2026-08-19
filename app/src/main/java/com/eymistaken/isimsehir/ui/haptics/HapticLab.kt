@@ -31,13 +31,12 @@ class HapticLab(
     val hasAmplitudeControl: Boolean =
         vibrator?.let { runCatching { it.hasAmplitudeControl() }.getOrDefault(false) } ?: false
 
-    fun supports(effect: LabEffect): Boolean = when {
-        Build.VERSION.SDK_INT < effect.minApi -> false
-        effect.family != LabFamily.Primitive -> true
-        vibrator == null -> false
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ->
-            runCatching { vibrator.areAllPrimitivesSupported(effect.id) }.getOrDefault(false)
-        else -> false
+    fun supports(effect: LabEffect): Boolean {
+        if (Build.VERSION.SDK_INT < effect.minApi) return false
+        if (effect.family != LabFamily.Primitive) return true
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        val vibrator = vibrator ?: return false
+        return runCatching { vibrator.areAllPrimitivesSupported(effect.id) }.getOrDefault(false)
     }
 
     /** Desteklenen primitive sayısı — cihaz özeti satırında gösteriliyor. */
