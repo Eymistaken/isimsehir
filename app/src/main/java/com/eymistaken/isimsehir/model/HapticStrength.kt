@@ -3,7 +3,11 @@ package com.eymistaken.isimsehir.model
 /**
  * Arayüz titreşimlerinin gücü. Bütün etkileşimler aynı darbeyi çaldığı için bu
  * ayar doğrudan hangi hazır efektin kullanılacağını seçiyor:
- * Hafif CLICK, Orta HEAVY_CLICK, Güçlü DOUBLE_CLICK.
+ * Hafif TICK, Orta HEAVY_CLICK, Güçlü DOUBLE_CLICK.
+ *
+ * CLICK listede yok: bu motorda HEAVY_CLICK'ten daha sert ve pürüzlü hissettiği
+ * için "hafif" kademesi ortadan sert çıkıyordu — DOUBLE_CLICK de iki CLICK
+ * olduğundan Güçlü ile Hafif aynı dokuyu veriyordu.
  *
  * [factor] yalnızca hazır efektlerin bulunmadığı eski sürümlerde, elle yazılmış
  * dalganın genliğini ölçeklemek için.

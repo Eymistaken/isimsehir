@@ -41,8 +41,11 @@ HEAVY_CLICK ise tok. Etkileşime göre ayrıştırmak (tık / seçim / onay) kâ
 doğru görünüyordu ama elde sert-yumuşak salınımı yarattı; her yerde aynı darbe
 daha tutarlı çıktı.
 
-Ayarlar'daki Hafif / Orta / Güçlü hangi efektin çalacağını seçer: CLICK,
-HEAVY_CLICK, DOUBLE_CLICK. Varsayılan Orta.
+Ayarlar'daki Hafif / Orta / Güçlü hangi efektin çalacağını seçer: `EFFECT_TICK`,
+`EFFECT_HEAVY_CLICK`, `EFFECT_DOUBLE_CLICK`. Varsayılan Orta. CLICK hiçbir
+kademede kullanılmıyor — bu motorda HEAVY_CLICK'ten sert çıktığı için "hafif"
+kademesi ortadan sert oluyordu, DOUBLE_CLICK de iki CLICK olduğu için Güçlü ile
+Hafif aynı dokuyu veriyordu.
 
 Hazır efektlerin olmadığı sürümlerde (Android 9 ve altı) tepe + kısa sönüm
 biçiminde yazılmış kendi dalgamız, genlik kontrolü de yoksa sistemin sabitleri

@@ -127,7 +127,9 @@ class Haptics(
         runCatching {
             VibrationEffect.createPredefined(
                 when (strength) {
-                    HapticStrength.Light -> VibrationEffect.EFFECT_CLICK
+                    // CLICK bilerek yok: bu motorda HEAVY_CLICK'ten daha sert ve
+                    // pürüzlü çıkıyor, yani "hafif" kademeye hiç uymuyor.
+                    HapticStrength.Light -> VibrationEffect.EFFECT_TICK
                     HapticStrength.Medium -> VibrationEffect.EFFECT_HEAVY_CLICK
                     HapticStrength.Strong -> VibrationEffect.EFFECT_DOUBLE_CLICK
                 },
