@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.eymistaken.isimsehir.model.AccentColor
 import com.eymistaken.isimsehir.model.DEFAULT_CATEGORIES
+import com.eymistaken.isimsehir.model.HapticChoice
 import com.eymistaken.isimsehir.model.HapticStrength
 import com.eymistaken.isimsehir.model.TimerEndVibration
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +26,8 @@ data class Settings(
     val durationSeconds: Int = 60,
     val haptics: Boolean = true,
     val hapticStrength: HapticStrength = HapticStrength.Medium,
+    /** Laboratuvardan seçilen darbe; null ise [hapticStrength] geçerli. */
+    val hapticChoice: HapticChoice? = null,
     val timerEndVibration: TimerEndVibration = TimerEndVibration.Medium,
 )
 
@@ -37,6 +40,7 @@ class SettingsStore(private val context: Context) {
         val DURATION = intPreferencesKey("duration_seconds")
         val HAPTICS = booleanPreferencesKey("haptics")
         val HAPTIC_STRENGTH = stringPreferencesKey("haptic_strength")
+        val HAPTIC_CHOICE = stringPreferencesKey("haptic_choice")
         val TIMER_END_VIBRATION = stringPreferencesKey("timer_end_vibration")
     }
 
@@ -51,6 +55,7 @@ class SettingsStore(private val context: Context) {
             durationSeconds = prefs[Keys.DURATION] ?: 60,
             haptics = prefs[Keys.HAPTICS] ?: true,
             hapticStrength = HapticStrength.fromKey(prefs[Keys.HAPTIC_STRENGTH]),
+            hapticChoice = HapticChoice.decode(prefs[Keys.HAPTIC_CHOICE]),
             timerEndVibration = TimerEndVibration.fromKey(prefs[Keys.TIMER_END_VIBRATION]),
         )
     }
@@ -77,6 +82,14 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setHapticStrength(value: HapticStrength) {
         context.dataStore.edit { it[Keys.HAPTIC_STRENGTH] = value.key }
+    }
+
+    /** null verilirse laboratuvar seçimi kaldırılır, varsayılana dönülür. */
+    suspend fun setHapticChoice(value: HapticChoice?) {
+        context.dataStore.edit { prefs ->
+            if (value == null) prefs.remove(Keys.HAPTIC_CHOICE)
+            else prefs[Keys.HAPTIC_CHOICE] = value.encode()
+        }
     }
 
     suspend fun setTimerEndVibration(value: TimerEndVibration) {

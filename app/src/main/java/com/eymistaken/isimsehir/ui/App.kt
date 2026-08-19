@@ -52,6 +52,7 @@ fun App(vm: GameViewModel = viewModel()) {
     val haptics = rememberHaptics(
         enabled = state.settings.haptics,
         strength = state.settings.hapticStrength,
+        choice = state.settings.hapticChoice,
         endStrength = state.settings.timerEndVibration,
     )
 
@@ -114,6 +115,7 @@ fun App(vm: GameViewModel = viewModel()) {
                             durationSeconds = state.settings.durationSeconds,
                             haptics = state.settings.haptics,
                             hapticStrength = state.settings.hapticStrength,
+                            hapticChoice = state.settings.hapticChoice,
                             timerEndVibration = state.settings.timerEndVibration,
                             versionName = BuildConfig.VERSION_NAME,
                             onAddCategory = vm::addCategory,
@@ -123,6 +125,7 @@ fun App(vm: GameViewModel = viewModel()) {
                             onDurationChange = vm::setDuration,
                             onHapticsChange = vm::setHaptics,
                             onHapticStrengthChange = vm::setHapticStrength,
+                            onHapticChoiceChange = vm::setHapticChoice,
                             onTimerEndVibrationChange = vm::setTimerEndVibration,
                         )
                     }

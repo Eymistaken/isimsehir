@@ -16,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import com.eymistaken.isimsehir.model.HapticChoice
+import com.eymistaken.isimsehir.model.HapticFamily
 import com.eymistaken.isimsehir.model.HapticStrength
 import com.eymistaken.isimsehir.model.TimerEndVibration
 import kotlin.math.roundToInt
@@ -62,8 +64,9 @@ enum class Haptic {
  * onlar belirliyor (null = sessiz) ve ileride yeniden ayrıştırmak istenirse
  * çağrı yerlerine dokunmadan yapılabilir.
  *
- * Şiddet ayarı hangi efektin çalacağını seçiyor: Hafif CLICK, Orta HEAVY_CLICK,
- * Güçlü DOUBLE_CLICK.
+ * Şiddet ayarı hangi efektin çalacağını seçiyor: Hafif TICK, Orta HEAVY_CLICK,
+ * Güçlü DOUBLE_CLICK. Laboratuvardan bir darbe seçilmişse ([choice]) o merdivenin
+ * yerine geçer.
  *
  * Hazır efektlerin olmadığı sürümlerde (Android 9 ve altı) tepe + kısa sönüm
  * biçiminde yazılmış kendi dalgamız, genlik kontrolü de yoksa sistemin
@@ -77,6 +80,8 @@ class Haptics(
     private val vibrator: Vibrator?,
     private val enabled: Boolean,
     private val strength: HapticStrength,
+    /** Laboratuvardan seçilmiş darbe; varsa güç merdiveninin yerine geçer. */
+    private val choice: HapticChoice?,
     private val endStrength: TimerEndVibration,
     /** Sistemin "dokunsal geri bildirim" ayarı. Vibrator yolu buna kendisi uymaz. */
     private val systemHapticsEnabled: Boolean,
@@ -87,11 +92,67 @@ class Haptics(
     /** [kind] yalnızca "titreşecek mi" sorusunu yanıtlıyor; null ise sessiz. */
     fun perform(kind: Haptic?) {
         if (!enabled || kind == null) return
-        play(strength)
+        val choice = choice
+        if (choice != null) playChoice(choice) else play(strength)
     }
 
     /** Ayarlar'da bir güç seçilirken o gücü bir kez örnekler. */
     fun previewTouch(preview: HapticStrength) = play(preview)
+
+    /**
+     * Laboratuvardaki bir darbeyi çalar. Hem oradaki önizleme hem de seçilmiş
+     * darbenin oyundaki karşılığı buradan geçiyor — iki yerde iki farklı
+     * çalma kodu olmasın diye.
+     */
+    fun playChoice(choice: HapticChoice) {
+        if (!systemHapticsEnabled) return
+        val vibrator = vibrator
+        val effect = when (choice.family) {
+            HapticFamily.Constant -> {
+                view?.performHapticFeedback(choice.id)
+                return
+            }
+
+            HapticFamily.Predefined ->
+                if (vibrator != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    runCatching { VibrationEffect.createPredefined(choice.id) }.getOrNull()
+                } else {
+                    null
+                }
+
+            HapticFamily.Primitive ->
+                if (vibrator != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    primitiveEffect(choice.id, choice.scale)
+                } else {
+                    null
+                }
+
+            HapticFamily.OneShot ->
+                if (vibrator != null) {
+                    runCatching {
+                        VibrationEffect.createOneShot(
+                            choice.durationMs.coerceAtLeast(1).toLong(),
+                            if (canShapeAmplitude) {
+                                choice.amplitude.coerceIn(1, 255)
+                            } else {
+                                VibrationEffect.DEFAULT_AMPLITUDE
+                            },
+                        )
+                    }.getOrNull()
+                } else {
+                    null
+                }
+        }
+
+        if (vibrator != null && effect != null) runCatching { vibrateTouch(vibrator, effect) }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun primitiveEffect(id: Int, scale: Float): VibrationEffect? = runCatching {
+        VibrationEffect.startComposition()
+            .addPrimitive(id, scale.coerceIn(0.05f, 1f))
+            .compose()
+    }.getOrNull()
 
     /** Süre dolduğunda; App bunu bip ve kırmızı flaşla birlikte tetikler. */
     fun timerEnd() = playEnd(endStrength)
@@ -227,6 +288,7 @@ class Haptics(
             vibrator = null,
             enabled = false,
             strength = HapticStrength.Light,
+            choice = null,
             endStrength = TimerEndVibration.Off,
             systemHapticsEnabled = false,
         )
@@ -240,16 +302,18 @@ val LocalHaptics = staticCompositionLocalOf { Haptics.None }
 fun rememberHaptics(
     enabled: Boolean,
     strength: HapticStrength,
+    choice: HapticChoice?,
     endStrength: TimerEndVibration,
 ): Haptics {
     val view = LocalView.current
     val context = LocalContext.current
-    return remember(view, context, enabled, strength, endStrength) {
+    return remember(view, context, enabled, strength, choice, endStrength) {
         Haptics(
             view = view,
             vibrator = vibratorOf(context),
             enabled = enabled,
             strength = strength,
+            choice = choice,
             endStrength = endStrength,
             systemHapticsEnabled = systemHapticsEnabled(context),
         )

@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.eymistaken.isimsehir.model.HapticChoice
+import com.eymistaken.isimsehir.model.HapticFamily
 import com.eymistaken.isimsehir.model.HapticStrength
 import com.eymistaken.isimsehir.model.TimerEndVibration
 import com.eymistaken.isimsehir.ui.components.Eyebrow
@@ -50,28 +52,36 @@ import kotlin.math.roundToInt
 /**
  * GEÇİCİ — titreşim laboratuvarı.
  *
- * Cihazın desteklediği bütün darbeleri tek tek denemek için. Doğru karakter
- * bulununca [com.eymistaken.isimsehir.ui.haptics.Haptics] ona göre ayarlanıp
+ * Bir darbeye dokunmak onu hem çalar hem de oyunun tamamına uygular; SIFIRLA
+ * varsayılana döndürür. Doğru darbe bulununca `Haptics` varsayılanı ona çekilip
  * bu dosya ile HapticLab.kt silinecek.
  */
 @Composable
 fun HapticLabSection(
     hapticStrength: HapticStrength,
+    hapticChoice: HapticChoice?,
     timerEndVibration: TimerEndVibration,
+    onChoose: (HapticChoice?) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     val lab = rememberHapticLab()
 
-    // Uygulamanın kendi sözlüğü; laboratuvarda ayardan bağımsız hep çalsın.
+    // Oyundaki motorun aynısı: burada duyduğun ile oyunda duyduğun aynı olsun.
     val appHaptics = rememberHaptics(
         enabled = true,
         strength = hapticStrength,
+        choice = hapticChoice,
         endStrength = timerEndVibration,
     )
 
     var scale by remember { mutableFloatStateOf(0.5f) }
     var duration by remember { mutableFloatStateOf(12f) }
     var amplitude by remember { mutableFloatStateOf(90f) }
+
+    fun choose(choice: HapticChoice) {
+        appHaptics.playChoice(choice)
+        onChoose(choice)
+    }
 
     SectionRule("Geliştirici · geçici")
     Spacer(Modifier.height(16.dp))
@@ -84,7 +94,7 @@ fun HapticLabSection(
         Column(Modifier.weight(1f)) {
             Text("Titreşim laboratuvarı", style = AppText.body, color = Cream)
             Text(
-                "Her darbeyi tek tek dene, hangisi doğruysa söyle",
+                "Dokunduğun darbe oyunun tamamına uygulanır",
                 style = AppText.caption,
                 color = OnInk45,
                 modifier = Modifier.padding(top = 1.dp),
@@ -117,9 +127,32 @@ fun HapticLabSection(
         color = OnInk45,
     )
 
+    Spacer(Modifier.height(12.dp))
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Eyebrow("Şu an oyunda", OnInk45, size = 10, tracking = 0.18)
+            Text(
+                text = hapticChoice?.let { "${it.label}${primitiveSuffix(it)}" }
+                    ?: "Varsayılan · ${hapticStrength.label}",
+                style = AppText.body,
+                color = Cream,
+                modifier = Modifier.padding(top = 3.dp),
+            )
+        }
+        LabChip(
+            label = "SIFIRLA",
+            enabled = hapticChoice != null,
+            onClick = { onChoose(null) },
+        )
+    }
+
     LabGroup(
         title = "Primitive · şiddet ayarlanabilir",
-        note = "Donanımın kendi ayarlı darbeleri. Vurmalı motorda asıl fark burada.",
+        note = "Donanımın kendi ayarlı darbeleri. Seçilen şiddetle birlikte kaydedilir.",
     ) {
         LabSlider(
             label = "Şiddet",
@@ -129,21 +162,21 @@ fun HapticLabSection(
             onChange = { scale = it },
         )
         Spacer(Modifier.height(10.dp))
-        LabChips(LAB_PRIMITIVES, lab::supports) { lab.play(it, scale) }
+        LabChips(LAB_PRIMITIVES, lab::supports, hapticChoice) { choose(it.toChoice(scale)) }
     }
 
     LabGroup(
         title = "Hazır efektler",
         note = "Şiddetleri cihaz belirler, ayarlanamaz.",
     ) {
-        LabChips(LAB_PREDEFINED, lab::supports) { lab.play(it, scale) }
+        LabChips(LAB_PREDEFINED, lab::supports, hapticChoice) { choose(it.toChoice(scale)) }
     }
 
     LabGroup(
         title = "Sistem sabitleri",
         note = "performHapticFeedback yolu; üretici kalibrasyonu.",
     ) {
-        LabChips(LAB_CONSTANTS, lab::supports) { lab.play(it, scale) }
+        LabChips(LAB_CONSTANTS, lab::supports, hapticChoice) { choose(it.toChoice(scale)) }
     }
 
     LabGroup(
@@ -167,15 +200,24 @@ fun HapticLabSection(
         )
         Spacer(Modifier.height(10.dp))
         LabChip(
-            label = "ÇAL",
+            label = "ÇAL VE SEÇ",
             enabled = lab.hasVibrator,
-            onClick = { lab.playOneShot(duration.roundToInt(), amplitude.roundToInt()) },
+            onClick = {
+                choose(
+                    HapticChoice(
+                        family = HapticFamily.OneShot,
+                        durationMs = duration.roundToInt(),
+                        amplitude = amplitude.roundToInt(),
+                        label = "${duration.roundToInt()} ms · ${amplitude.roundToInt()}",
+                    ),
+                )
+            },
         )
     }
 
     LabGroup(
-        title = "Uygulamanın kendi sözlüğü",
-        note = "Şu anki ayarla (${hapticStrength.label}) gerçekte ne çalıyorsa o.",
+        title = "Oyundaki karşılıkları",
+        note = "Bu düğmeler oyunun gerçekte çaldığı darbeyi verir, seçimi değiştirmez.",
     ) {
         FlowRowSimple(horizontalGap = 7.dp, verticalGap = 7.dp) {
             Haptic.entries.forEach { kind ->
@@ -190,6 +232,10 @@ fun HapticLabSection(
 
     Spacer(Modifier.height(6.dp))
 }
+
+/** Primitive seçimlerinde şiddet de kimliğin parçası; etikete ekleniyor. */
+private fun primitiveSuffix(choice: HapticChoice): String =
+    if (choice.family == HapticFamily.Primitive) " · %.2f".format(choice.scale) else ""
 
 @Composable
 private fun LabGroup(title: String, note: String, content: @Composable () -> Unit) {
@@ -208,6 +254,7 @@ private fun LabGroup(title: String, note: String, content: @Composable () -> Uni
 private fun LabChips(
     effects: List<LabEffect>,
     supported: (LabEffect) -> Boolean,
+    current: HapticChoice?,
     onPlay: (LabEffect) -> Unit,
 ) {
     FlowRowSimple(horizontalGap = 7.dp, verticalGap = 7.dp) {
@@ -216,6 +263,7 @@ private fun LabChips(
             LabChip(
                 label = if (enabled) effect.label else "${effect.label} ·",
                 enabled = enabled,
+                selected = current?.family == effect.family && current.id == effect.id,
                 onClick = { onPlay(effect) },
             )
         }
@@ -223,7 +271,12 @@ private fun LabChips(
 }
 
 @Composable
-private fun LabChip(label: String, enabled: Boolean, onClick: () -> Unit) {
+private fun LabChip(
+    label: String,
+    enabled: Boolean,
+    selected: Boolean = false,
+    onClick: () -> Unit,
+) {
     val accent = LocalAccent.current
     val shape = RoundedCornerShape(10.dp)
     Box(
@@ -236,9 +289,13 @@ private fun LabChip(label: String, enabled: Boolean, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            label,
+            if (selected) "• $label" else label,
             style = AppText.buttonLabel(11, 0.08),
-            color = if (enabled) Cream else OnInk30,
+            color = when {
+                !enabled -> OnInk30
+                selected -> accent
+                else -> Cream
+            },
         )
     }
 }

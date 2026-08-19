@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.eymistaken.isimsehir.model.AccentColor
 import com.eymistaken.isimsehir.model.DURATION_PRESETS
+import com.eymistaken.isimsehir.model.HapticChoice
 import com.eymistaken.isimsehir.model.HapticStrength
 import com.eymistaken.isimsehir.model.TimerEndVibration
 import com.eymistaken.isimsehir.ui.components.AccentPillButton
@@ -70,6 +71,7 @@ fun SettingsScreen(
     durationSeconds: Int,
     haptics: Boolean,
     hapticStrength: HapticStrength,
+    hapticChoice: HapticChoice?,
     timerEndVibration: TimerEndVibration,
     versionName: String,
     onAddCategory: (String) -> Unit,
@@ -79,6 +81,7 @@ fun SettingsScreen(
     onDurationChange: (Int) -> Unit,
     onHapticsChange: (Boolean) -> Unit,
     onHapticStrengthChange: (HapticStrength) -> Unit,
+    onHapticChoiceChange: (HapticChoice?) -> Unit,
     onTimerEndVibrationChange: (TimerEndVibration) -> Unit,
 ) {
     var draft by remember { mutableStateOf("") }
@@ -212,13 +215,24 @@ fun SettingsScreen(
             HapticStrength.entries.forEach { option ->
                 ChoiceChip(
                     label = option.label,
-                    selected = option == hapticStrength,
+                    // Laboratuvardan bir darbe seçiliyken güç kademesi devrede değil.
+                    selected = hapticChoice == null && option == hapticStrength,
                     modifier = Modifier.weight(1f),
                 ) {
+                    onHapticChoiceChange(null)
                     onHapticStrengthChange(option)
                     hapticsEngine.previewTouch(option)
                 }
             }
+        }
+        if (hapticChoice != null) {
+            Text(
+                "Laboratuvardan \"${hapticChoice.label}\" seçili — güç kademesi " +
+                    "devrede değil. Bir kademeye dokunmak varsayılana döndürür.",
+                style = AppText.caption,
+                color = OnInk45,
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
 
         Spacer(Modifier.height(18.dp))
@@ -247,7 +261,9 @@ fun SettingsScreen(
         Spacer(Modifier.height(30.dp))
         HapticLabSection(
             hapticStrength = hapticStrength,
+            hapticChoice = hapticChoice,
             timerEndVibration = timerEndVibration,
+            onChoose = onHapticChoiceChange,
         )
 
         Spacer(Modifier.height(30.dp))

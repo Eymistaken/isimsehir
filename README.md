@@ -67,8 +67,15 @@ tek bir hafif tik gelir.
 Ayarlar'ın altında bir titreşim laboratuvarı var: cihazın desteklediği bütün
 primitive'ler, hazır efektler ve sistem sabitleri tek tek denenebiliyor,
 primitive şiddeti ile serbest darbenin süre/genliği kaydırıcıyla ayarlanıyor.
-Amaç doğru karakteri elde seçmek. Karar verilince `ui/haptics/HapticLab.kt` ve
-`ui/settings/HapticLabSection.kt` silinip Ayarlar'daki çağrı kaldırılacak.
+
+Bir darbeye dokunmak onu hem çalar hem de **oyunun tamamına uygular** — seçim
+DataStore'da kalıcı. SIFIRLA varsayılana döndürür; güç kademelerinden birine
+dokunmak da aynı işi görür. Seçim varken Hafif/Orta/Güçlü devre dışıdır.
+Laboratuvardaki önizleme ile oyundaki titreşim aynı koddan (`Haptics.playChoice`)
+çıkar, yani duyduğun şey birebir oyuna giren şeydir.
+
+Karar verilince `ui/haptics/HapticLab.kt` ve `ui/settings/HapticLabSection.kt`
+silinip Ayarlar'daki çağrı kaldırılacak; seçilen darbe varsayılan hâline gelir.
 
 ## Kalıcılık
 
