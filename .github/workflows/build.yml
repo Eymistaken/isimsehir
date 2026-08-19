@@ -49,6 +49,7 @@ jobs:
       - name: APK'yı yükle
         uses: actions/upload-artifact@v4
         with:
-          name: isimsehir-${{ github.ref_name }}
+          # Dal adı artifact adında kullanılamaz: içindeki "/" yasak karakter.
+          name: isimsehir-apk
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
