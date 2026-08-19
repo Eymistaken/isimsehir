@@ -23,8 +23,11 @@ val hasReleaseKeystore = keystoreProps.getProperty("storeFile") != null
 // BUILD_NUMBER geçer (run number), yerel derlemede 0 kalır.
 val baseVersionName = "2.0"
 val buildNumber = (System.getenv("BUILD_NUMBER") ?: "0").toIntOrNull() ?: 0
-// Geliştirici sürümlerinde "-dev" gibi bir ek; iş akışı geçiyor.
+// Geliştirici sürümlerinde "-dev" gibi bir ek; iş akışı geçiyor. Aynı ek
+// Ayarlar'daki geliştirici bölümünü de açıyor: deneysel şeyler yalnızca
+// ön sürümlerde görünsün.
 val versionSuffix = System.getenv("VERSION_SUFFIX").orEmpty()
+val isDevBuild = versionSuffix.contains("dev", ignoreCase = true)
 val appVersionName =
     if (buildNumber == 0) baseVersionName else "$baseVersionName.$buildNumber$versionSuffix"
 val appVersionCode = 1 + buildNumber
@@ -54,6 +57,8 @@ android {
 
     buildTypes {
         release {
+            // Geliştirici bölümü yalnızca -dev sürümlerinde görünsün.
+            buildConfigField("boolean", "DEV_BUILD", isDevBuild.toString())
             // R8 kapalı: cihazda çalıştırıp doğrulayamadığımız için ilk sürümde risk alınmıyor.
             isMinifyEnabled = false
             isShrinkResources = false
@@ -65,6 +70,8 @@ android {
             }
         }
         debug {
+            // Yerelde derlerken geliştirici bölümü hep açık.
+            buildConfigField("boolean", "DEV_BUILD", "true")
             applicationIdSuffix = ".debug"
         }
     }

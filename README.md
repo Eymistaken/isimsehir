@@ -62,11 +62,11 @@ flaşı tamamlıyor. Gücü Ayarlar'dan Yüksek / Orta / Kapalı olarak seçilir
 kapatıp yalnızca süre uyarısını açık bırakmak mümkün. Son üç saniyede her saniye
 tek bir hafif tik gelir.
 
-### Geliştirici bölümü (geçici)
+### Titreşim laboratuvarı
 
-Ayarlar'ın altında bir titreşim laboratuvarı var: cihazın desteklediği bütün
-primitive'ler, hazır efektler ve sistem sabitleri tek tek denenebiliyor,
-primitive şiddeti ile serbest darbenin süre/genliği kaydırıcıyla ayarlanıyor.
+Ayarlar'daki Geliştirici bölümünde: cihazın desteklediği bütün primitive'ler,
+hazır efektler ve sistem sabitleri tek tek denenebiliyor, primitive şiddeti ile
+serbest darbenin süre/genliği kaydırıcıyla ayarlanıyor.
 
 Bir darbeye dokunmak onu hem çalar hem de **oyunun tamamına uygular** — seçim
 DataStore'da kalıcı. SIFIRLA varsayılana döndürür; güç kademelerinden birine
@@ -74,8 +74,18 @@ dokunmak da aynı işi görür. Seçim varken Hafif/Orta/Güçlü devre dışıd
 Laboratuvardaki önizleme ile oyundaki titreşim aynı koddan (`Haptics.playChoice`)
 çıkar, yani duyduğun şey birebir oyuna giren şeydir.
 
-Karar verilince `ui/haptics/HapticLab.kt` ve `ui/settings/HapticLabSection.kt`
-silinip Ayarlar'daki çağrı kaldırılacak; seçilen darbe varsayılan hâline gelir.
+## Geliştirici bölümü
+
+Ayarlar'ın en altındaki Geliştirici bölümü yalnızca **`-dev` sürümlerinde**
+görünür. Anahtar `BuildConfig.DEV_BUILD`: release derlemesinde sürüm adındaki
+`-dev` ekinden geliyor, yerel debug derlemelerinde ise hep açık. Normal bir
+sürümde bölüm hiç çizilmez.
+
+Şu an içinde titreşim laboratuvarı var; yeni deneysel şeyler
+`ui/settings/DeveloperSection.kt` içine bir blok daha eklenerek buraya girer.
+
+Bölüm gizliyken de laboratuvardan seçilmiş bir darbe varsa oyunda çalmaya devam
+eder — Ayarlar'daki güç kademelerinden birine dokunmak onu temizler.
 
 ## Kalıcılık
 

@@ -31,7 +31,6 @@ import com.eymistaken.isimsehir.model.HapticStrength
 import com.eymistaken.isimsehir.model.TimerEndVibration
 import com.eymistaken.isimsehir.ui.components.Eyebrow
 import com.eymistaken.isimsehir.ui.components.FlowRowSimple
-import com.eymistaken.isimsehir.ui.components.SectionRule
 import com.eymistaken.isimsehir.ui.components.tapNoRipple
 import com.eymistaken.isimsehir.ui.haptics.Haptic
 import com.eymistaken.isimsehir.ui.haptics.LAB_CONSTANTS
@@ -50,14 +49,14 @@ import com.eymistaken.isimsehir.ui.theme.OnInk60
 import kotlin.math.roundToInt
 
 /**
- * GEÇİCİ — titreşim laboratuvarı.
+ * Titreşim laboratuvarı — [DeveloperSection] içindeki ilk deney.
  *
  * Bir darbeye dokunmak onu hem çalar hem de oyunun tamamına uygular; SIFIRLA
  * varsayılana döndürür. Doğru darbe bulununca `Haptics` varsayılanı ona çekilip
- * bu dosya ile HapticLab.kt silinecek.
+ * bu dosya ile HapticLab.kt silinebilir.
  */
 @Composable
-fun HapticLabSection(
+fun HapticLabBlock(
     hapticStrength: HapticStrength,
     hapticChoice: HapticChoice?,
     timerEndVibration: TimerEndVibration,
@@ -83,8 +82,7 @@ fun HapticLabSection(
         onChoose(choice)
     }
 
-    SectionRule("Geliştirici · geçici")
-    Spacer(Modifier.height(16.dp))
+    Spacer(Modifier.height(18.dp))
 
     Row(
         Modifier.fillMaxWidth(),

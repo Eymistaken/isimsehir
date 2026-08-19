@@ -258,12 +258,11 @@ fun SettingsScreen(
             }
         }
 
-        Spacer(Modifier.height(30.dp))
-        HapticLabSection(
+        DeveloperSection(
             hapticStrength = hapticStrength,
             hapticChoice = hapticChoice,
             timerEndVibration = timerEndVibration,
-            onChoose = onHapticChoiceChange,
+            onHapticChoiceChange = onHapticChoiceChange,
         )
 
         Spacer(Modifier.height(30.dp))
