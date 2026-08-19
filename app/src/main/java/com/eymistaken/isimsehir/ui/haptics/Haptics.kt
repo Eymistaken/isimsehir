@@ -10,6 +10,7 @@ import android.os.VibratorManager
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import android.view.View
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -51,13 +52,17 @@ enum class Haptic {
 }
 
 /**
- * Arayüz titreşimleri kendi kalıplarımızla çalınıyor: `performHapticFeedback`
- * sabitleri (KEYBOARD_TAP, LONG_PRESS, CONFIRM) üreticinin kalibrasyonuna
- * bağlı ve çoğu cihazda bir oyun için fazla sert kaçıyor; genlik ve süreyi
- * kendimiz verince "hafif" gerçekten hafif oluyor.
+ * Arayüz titreşimleri üç kademeli bir yoldan çalınıyor; hedef "hafif ama tok":
  *
- * Genlik kontrolü olmayan cihazlarda bu mümkün değil — orada sistemin en
- * yumuşak sabitlerine düşülüyor.
+ *  1. **Primitive'ler** (Android 11+, donanım destekliyorsa). CLICK, TICK,
+ *     LOW_TICK, THUD üreticinin motor için ayarladığı hazır darbelerdir: keskin
+ *     atak, hızlı sönüm. `scale` ile şiddetleri düşürülünce hafifler ama
+ *     tokluğunu kaybetmez. Tercih edilen yol bu.
+ *  2. **Zarflı dalga** (genlik kontrolü varsa). Düz ve alçak bir dalga motoru
+ *     oturtamadan bırakıp pürüzlü hissettirdiği için darbeler tepe + kısa
+ *     sönüm biçiminde yazıldı.
+ *  3. **Sistem sabitleri.** Genliği hiç ayarlayamayan cihazlarda elde kalan
+ *     en yumuşak seçenekler.
  *
  * Süre bitişi ayrı kanal: kendi gücü var ve [enabled] anahtarından bağımsız,
  * çünkü telefon cepteyken hissedilmesi gereken tek an o.
@@ -74,24 +79,21 @@ class Haptics(
     private val canShapeAmplitude: Boolean =
         vibrator?.let { runCatching { it.hasAmplitudeControl() }.getOrDefault(false) } ?: false
 
+    /** İstenen primitive'in bu cihazdaki karşılığı; bir kez çözülüp saklanıyor. */
+    private val primitiveSupport: Map<Int, Int> =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && vibrator != null) {
+            resolvePrimitives(vibrator)
+        } else {
+            emptyMap()
+        }
+
     fun perform(kind: Haptic?) {
         if (!enabled || kind == null) return
-        if (canShapeAmplitude && systemHapticsEnabled) {
-            playTouch(kind, strength)
-        } else {
-            // Genliği ayarlayamıyoruz; sistemin en yumuşak sabitleri kalıyor.
-            view?.performHapticFeedback(fallbackConstant(kind))
-        }
+        play(kind, strength)
     }
 
     /** Ayarlar'da bir güç seçilirken o gücü bir kez örnekler. */
-    fun previewTouch(preview: HapticStrength) {
-        if (canShapeAmplitude && systemHapticsEnabled) {
-            playTouch(Haptic.Tap, preview)
-        } else {
-            view?.performHapticFeedback(fallbackConstant(Haptic.Tap))
-        }
-    }
+    fun previewTouch(preview: HapticStrength) = play(Haptic.Tap, preview)
 
     /** Süre dolduğunda; App bunu bip ve kırmızı flaşla birlikte tetikler. */
     fun timerEnd() = playEnd(endStrength)
@@ -101,47 +103,99 @@ class Haptics(
 
     // ------------------------------------------------------------ arayüz
 
+    private fun play(kind: Haptic, strength: HapticStrength) {
+        if (!systemHapticsEnabled) return
+        val vibrator = vibrator
+        val effect = when {
+            vibrator == null -> null
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && primitiveSupport.isNotEmpty() ->
+                primitiveEffect(kind, strength)
+            else -> null
+        } ?: if (vibrator != null && canShapeAmplitude) waveformEffect(kind, strength) else null
+
+        if (vibrator != null && effect != null) {
+            runCatching { vibrateTouch(vibrator, effect) }
+        } else {
+            view?.performHapticFeedback(fallbackConstant(kind))
+        }
+    }
+
     /**
-     * Milisaniye ve genlik (1-255) çiftleri. Genliği 0 olan parçalar iki
-     * darbe arasındaki sessizlik. Değerler "Orta"ya göre yazıldı; seçilen
-     * güç bunları ölçekliyor.
+     * Primitive dizisi: hangi darbe, ne şiddette (0-1, "Orta" referansı) ve
+     * öncekinden kaç ms sonra. Onay ve ret tek darbe değil — güçle değil
+     * biçimle ayrışsınlar diye iki parçalı.
      */
-    private fun pattern(kind: Haptic): Pair<LongArray, IntArray> = when (kind) {
-        Haptic.Tick -> longArrayOf(8) to intArrayOf(65)
-        Haptic.Select -> longArrayOf(10) to intArrayOf(80)
-        Haptic.Tap -> longArrayOf(11) to intArrayOf(90)
-        Haptic.GestureStart -> longArrayOf(10) to intArrayOf(75)
-        Haptic.ToggleOff -> longArrayOf(10) to intArrayOf(80)
-        Haptic.ToggleOn -> longArrayOf(13) to intArrayOf(100)
-        Haptic.LongPress -> longArrayOf(18) to intArrayOf(120)
-        // Onay ve ret: tek darbe değil, iki parçalı — güçle değil biçimle ayrışsın.
-        Haptic.Confirm -> longArrayOf(11, 55, 15) to intArrayOf(85, 0, 110)
-        Haptic.Reject -> longArrayOf(16, 45, 16) to intArrayOf(110, 0, 110)
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun primitiveSteps(kind: Haptic): List<Triple<Int, Float, Int>> = when (kind) {
+        Haptic.Tick -> listOf(Triple(LOW_TICK, 0.90f, 0))
+        Haptic.Select -> listOf(Triple(TICK, 0.80f, 0))
+        Haptic.GestureStart -> listOf(Triple(TICK, 0.65f, 0))
+        Haptic.ToggleOff -> listOf(Triple(TICK, 0.85f, 0))
+        Haptic.Tap -> listOf(Triple(CLICK, 0.65f, 0))
+        Haptic.ToggleOn -> listOf(Triple(CLICK, 0.75f, 0))
+        Haptic.LongPress -> listOf(Triple(THUD, 0.85f, 0))
+        Haptic.Confirm -> listOf(Triple(CLICK, 0.55f, 0), Triple(THUD, 0.80f, 55))
+        Haptic.Reject -> listOf(Triple(CLICK, 0.75f, 0), Triple(CLICK, 0.75f, 45))
     }
 
-    private fun playTouch(kind: Haptic, strength: HapticStrength) {
-        val vibrator = vibrator ?: return
-        val (timings, amplitudes) = pattern(kind)
-        val scaled = IntArray(amplitudes.size) { i ->
-            val value = amplitudes[i]
-            if (value == 0) 0 else (value * strength.factor).roundToInt().coerceIn(1, 255)
-        }
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun primitiveEffect(kind: Haptic, strength: HapticStrength): VibrationEffect? =
         runCatching {
-            val effect = VibrationEffect.createWaveform(timings, scaled, NO_REPEAT)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                // USAGE_TOUCH: sistem kullanıcının dokunma titreşimi yoğunluğunu da uygular.
-                vibrator.vibrate(
-                    effect,
-                    VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH),
+            val composition = VibrationEffect.startComposition()
+            var added = false
+            primitiveSteps(kind).forEach { (wanted, scale, delay) ->
+                val primitive = primitiveSupport[wanted] ?: return@forEach
+                composition.addPrimitive(
+                    primitive,
+                    (scale * strength.factor).coerceIn(0.05f, 1f),
+                    delay,
                 )
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(effect, TOUCH_ATTRIBUTES)
+                added = true
             }
+            if (added) composition.compose() else null
+        }.getOrNull()
+
+    /**
+     * Milisaniye ve genlik (1-255) çiftleri. Her darbe tepe + kısa sönüm;
+     * genliği 0 olan parçalar iki darbe arasındaki sessizlik. Değerler
+     * "Orta"ya göre yazıldı, seçilen güç bunları ölçekliyor.
+     */
+    private fun waveform(kind: Haptic): Pair<LongArray, IntArray> = when (kind) {
+        Haptic.Tick -> longArrayOf(3, 5) to intArrayOf(120, 45)
+        Haptic.Select -> longArrayOf(3, 6) to intArrayOf(140, 50)
+        Haptic.GestureStart -> longArrayOf(3, 5) to intArrayOf(120, 45)
+        Haptic.ToggleOff -> longArrayOf(3, 6) to intArrayOf(130, 45)
+        Haptic.Tap -> longArrayOf(4, 7) to intArrayOf(160, 60)
+        Haptic.ToggleOn -> longArrayOf(4, 8) to intArrayOf(170, 65)
+        Haptic.LongPress -> longArrayOf(5, 14) to intArrayOf(200, 90)
+        Haptic.Confirm -> longArrayOf(3, 6, 50, 4, 10) to intArrayOf(140, 50, 0, 180, 70)
+        Haptic.Reject -> longArrayOf(4, 7, 40, 4, 7) to intArrayOf(170, 60, 0, 170, 60)
+    }
+
+    private fun waveformEffect(kind: Haptic, strength: HapticStrength): VibrationEffect? =
+        runCatching {
+            val (timings, amplitudes) = waveform(kind)
+            val scaled = IntArray(amplitudes.size) { i ->
+                val value = amplitudes[i]
+                if (value == 0) 0 else (value * strength.factor).roundToInt().coerceIn(1, 255)
+            }
+            VibrationEffect.createWaveform(timings, scaled, NO_REPEAT)
+        }.getOrNull()
+
+    private fun vibrateTouch(vibrator: Vibrator, effect: VibrationEffect) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // USAGE_TOUCH: sistem kullanıcının dokunma titreşimi yoğunluğunu da uygular.
+            vibrator.vibrate(
+                effect,
+                VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH),
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(effect, TOUCH_ATTRIBUTES)
         }
     }
 
-    /** Genlik kontrolü yokken elde kalan en yumuşak sistem sabitleri. */
+    /** Genliği hiç ayarlayamayan cihazlarda elde kalan en yumuşak sabitler. */
     private fun fallbackConstant(kind: Haptic): Int = when (kind) {
         Haptic.LongPress -> HapticFeedbackConstants.LONG_PRESS
 
@@ -207,6 +261,32 @@ class Haptics(
 
     companion object {
         private const val NO_REPEAT = -1
+
+        // VibrationEffect.Composition.PRIMITIVE_* değerleri. Sabitler API
+        // seviyesine bağlı olduğu için sayı olarak yazıldı; LOW_TICK ve THUD
+        // Android 12'de geldi ve her cihazda desteklenmiyor — aşağıdaki
+        // zincirle desteklenen en yakınına düşülüyor.
+        private const val CLICK = 1
+        private const val THUD = 2
+        private const val TICK = 7
+        private const val LOW_TICK = 8
+
+        /** İstenen primitive yoksa en yakın desteklenene düş. */
+        private val PRIMITIVE_CHAINS: Map<Int, IntArray> = mapOf(
+            LOW_TICK to intArrayOf(LOW_TICK, TICK, CLICK),
+            TICK to intArrayOf(TICK, CLICK),
+            CLICK to intArrayOf(CLICK),
+            THUD to intArrayOf(THUD, CLICK),
+        )
+
+        @RequiresApi(Build.VERSION_CODES.R)
+        private fun resolvePrimitives(vibrator: Vibrator): Map<Int, Int> =
+            runCatching {
+                PRIMITIVE_CHAINS.mapNotNull { (wanted, chain) ->
+                    chain.firstOrNull { vibrator.areAllPrimitivesSupported(it) }
+                        ?.let { wanted to it }
+                }.toMap()
+            }.getOrDefault(emptyMap())
 
         private val TOUCH_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)

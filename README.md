@@ -31,13 +31,17 @@ Bir turu silmek için Turlar ekranındaki kartı basılı tutun.
 
 ## Titreşim
 
-Arayüz dokunuşları — buton, chip, harf seçimi, sekme, uzun basış — kendi
-titreşim kalıplarımızla çalar. `performHapticFeedback` sabitleri (KEYBOARD_TAP,
-LONG_PRESS, CONFIRM) üreticinin kalibrasyonuna bağlı ve bir oyun için fazla sert
-kaçıyordu; genlik ve süreyi kendimiz verince gücü gerçekten ayarlanabiliyor.
-Ayarlar'daki Hafif / Orta / Güçlü seçimi bu genlikleri ölçekler, varsayılan
-Hafif. Genlik kontrolü olmayan cihazlarda sistemin en yumuşak sabitlerine
-düşülür.
+Arayüz dokunuşları — buton, chip, harf seçimi, sekme, uzun basış — üç kademeli
+bir yoldan çalar. Öncelik **haptic primitive**'lerde (CLICK, TICK, LOW_TICK,
+THUD): üreticinin motor için ayarladığı hazır darbelerdir, keskin atak ve hızlı
+sönümle "tok" hissederler; `scale` ile şiddetleri düşünce hafifler ama tokluğunu
+kaybetmezler. Primitive desteklenmiyorsa tepe + kısa sönüm biçiminde yazılmış
+kendi dalgalarımız devreye girer — düz ve alçak bir dalga motoru oturtamadan
+bıraktığı için pürüzlü hissettiriyordu, zarf bunu düzeltiyor. Genliği hiç
+ayarlanamayan cihazlarda sistemin en yumuşak sabitlerine düşülür.
+
+Ayarlar'daki Hafif / Orta / Güçlü seçimi bu şiddetleri ölçekler; varsayılan
+Hafif.
 
 Çark dönerken işaretçinin altından geçen her harf bir tık verir; tıklar arasında
 en az 55 ms bırakılır, yoksa dönüşün başındaki hız tek bir vızıltıya dönüşür.
