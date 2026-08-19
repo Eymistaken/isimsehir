@@ -131,6 +131,19 @@ release bir öncekinin üzerine kurulabilir. Temel sürümü (`2.0`) yükseltmek
 için `app/build.gradle.kts` içindeki `baseVersionName` değerini değiştirmek
 yeterli. Yerel derlemede sayaç 0 kabul edilir, sürüm sade `2.0` kalır.
 
+### Stabil ve deneme sürümleri
+
+İki tür sürüm var, ikisi de aynı iş akışından çıkıyor:
+
+| | Commit mesajı | Sürüm adı | GitHub | Geliştirici bölümü |
+|---|---|---|---|---|
+| Stabil | `[dev]` yok | `2.0.x` | normal release | yok |
+| Deneme | `[dev]` var | `2.0.x-dev` | ön sürüm (pre-release) | var |
+
+Dağıtılan sürüm stabil olan; deneme sürümleri denemek içindir. `versionCode`
+ikisinde de aynı sayaçla arttığı için deneme sürümünden stabile geçmek sorun
+çıkarmaz.
+
 ### CI'da imzalama
 
 Depoda imza anahtarı yoksa CI, release APK'sını runner'ın debug anahtarıyla
